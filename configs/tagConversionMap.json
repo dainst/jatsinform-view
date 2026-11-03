@@ -513,6 +513,11 @@
             "tagName": "span",
             "className": "keyword",
             "obligatory": false
+        },
+        "element-citation": {
+            "tagName": "div",
+            "className": "element-citation",
+            "obligatory": false
         }
     }
 ]

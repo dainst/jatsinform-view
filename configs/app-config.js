@@ -1,24 +1,25 @@
+// app base url:
+const appBaseUrl = "http://localhost:3000/";
+
+// single file script source
+const singleFileScriptsUrl = "http://127.0.0.1:3001/" // "https:/publications.test.dainst.org/jatsinform-view/";
+
 // scriptLibrary:
 const scriptLibrary = {
-    "generatePagedView": {
+    "viewerConfig": {
         "type": "text/javascript",
-        "src-remote": "src/js/generatePagedView.js",
-        "src-local": "src/js/generatePagedView.js"
+        "src-remote": "web-viewer/viewer-config.js",
+        "src-local": "web-viewer/viewer-config.js"
     },
-    "generateWebView": {
+    "articleWebViewController": {
         "type": "text/javascript",
-        "src-remote": "src/js/generateWebView.js",
-        "src-local": "src/js/generateWebView.js"
-    },
-    "webViewController": {
-        "type": "text/javascript",
-        "src-remote": "src/js/webViewController.js",
-        "src-local": "src/js/webViewController.js"
+        "src-remote": "web-viewer/articleWebViewController.js",
+        "src-local": "web-viewer/articleWebViewController.js"
     },
     "figConstellationSetup": {
         "type": "text/javascript",
-        "src-remote": "src/js/setupFigConstellations.js",
-        "src-local": "src/js/setupFigConstellations.js"
+        "src-remote": "configs/setupFigConstellations.js",
+        "src-local": "configs/setupFigConstellations.js"
     },
     "pagedJs": {
         "type": "text/javascript",
@@ -61,11 +62,6 @@ const scriptLibrary = {
         "src-local": "https://fonts.bunny.net/css?family=noto-sans:300"
     }  
 } 
-// app base url:
-const appBaseUrl = "http://localhost:3000/";
-
-// single file script source
-const singleFileScriptsUrl = "https:/publications.test.dainst.org/jatsinform-view/";
 
 // path to xml directory in base-domain
 const xmlFolder = "xml-documents";
@@ -73,8 +69,15 @@ const xmlFolder = "xml-documents";
 // load editor-xml from localStorage
 const xmlFromEditor = true;
 
-// devMode (browser logs)
+// devMode (= additional browser logs)
 const devMode = false;
+
+// default journal:
+const defaultJournal = "AA";
+
+// check urls according to this regex specs:
+const urlRegex = /doi|handle|urn|ark:|orcid|ror|dainst|idai.world|wikipedia/g;
+const specificUseRegex = "zenon|extrafeatures|supplements";
 
 // favicon:
 const faviconLink = document.createElement("link");
@@ -87,4 +90,3 @@ const systemNotice = {
     "html": "This HTML document was created with <em>JatsInForm</em>.",
     "pdf": "This PDF was created with </em>JatsInForm</em."
 }
-

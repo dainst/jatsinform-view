@@ -4,8 +4,6 @@
       ["p", "show paged view"],
     "showHTMLView": 
       ["v", "show web view"],
-    "showEditorView": 
-      ["e", "show editor view, not implemented"],
     "setupFigConstellations": 
       ["ß", "create figConstellation.json"],
     "reload": 

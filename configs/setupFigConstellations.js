@@ -1,5 +1,5 @@
-/** generate figureConstellationKeys
- * ----------------------------------*/
+// Figure constellation generation
+// -------------------------------
 const allTypesettingClasses = [
     ['false', 'float-w-col-2', 'float-w-col-4','float-w-col-6', 'inset', 'regular', 'regular-bottom', 'overmargin', 'overmargin-bottom'],
     ['false', 'float-w-col-2', 'float-w-col-4','float-w-col-6', 'inset', 'regular', 'regular-bottom', 'overmargin', 'overmargin-bottom'],
@@ -7,18 +7,17 @@ const allTypesettingClasses = [
 ];
 
 // generate each possible typesettingClass constellation:
-let constellationKeys = generateFigConstellationKeys(allTypesettingClasses, "#");
+const constellationKeys = generateFigConstellationKeys(allTypesettingClasses, "#");
 console.log("SETUP \n Generate figConstelleationKeys: ", constellationKeys);
 
-let configurations;
 let stats;
 let json = "[{";
 for (let i = 0; i < constellationKeys.length; i++) {
 
-    let splits = constellationKeys[i].split('#');
-    let indexFigBefore = 0;
-    let indexCurrentFig = 1
-    let indexNextFig = 2;
+    const splits = constellationKeys[i].split("#");
+    const indexFigBefore = 0;
+    const indexCurrentFig = 1;
+    const indexNextFig = 2;
     let currentFigureSet;
     let nextFigureSet;
 
@@ -133,7 +132,7 @@ function generateFigConstellationKeys(array, separator) {
 
     const result = [];
     let allCasesRest;
-    if (array.length == 1) {
+    if (array.length === 1) {
         return array[0];
     }
     else {

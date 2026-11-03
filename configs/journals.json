@@ -2,7 +2,7 @@
   "AA": {
     "journalId": "AA",
     "journalMainColor": "#E2510C",
-    "journalMainColorHighContrast": "#E2510C",
+    "journalMainColorHighContrast": "#d04300",
     "logoPath": "src/css/assets/graphics/AA_Logo.png",
     "figureTypesettingClass": {
       "tiny-landscape": "float-w-col-2",
@@ -64,36 +64,32 @@
     "journalMainColor": "#164194",
     "journalMainColorHighContrast": "#164194",
     "logoPath": "src/css/assets/graphics/e-FB_Logo.png",
-    "figCaptionsAtPageBottom": true,
+    "twoColumnLayout": true,
     "figureTypesettingClass": {
       "tiny-landscape": "float-w-col-2",
       "tiny-square": "float-w-col-2",
       "tiny-portrait": "float-w-col-2",
-      "small-landscape": "float-w-col-4",
+      "small-landscape": "inset",
       "medium-landscape": "regular-bottom",
       "large-landscape": "regular-bottom",
-      "small-square": "float-w-col-4",
+      "small-square": "inset",
       "medium-square": "regular-bottom",
       "large-square": "regular-bottom",
-      "small-portrait": "float-w-col-2",
-      "medium-portrait": "float-w-col-4",
-      "large-portrait": "float-w-col-4"
+      "small-portrait": "inset",
+      "medium-portrait": "inset",
+      "large-portrait": "inset"
     },
     "figureModelSpecs": {
       "float-w-col-2": ["25%", "100%"],
-      "float-w-col-4": ["50%", "100%"],
-      "float-w-col-6": ["50%", "100%"],
-      "inset": ["100%", "100%"],
+      "inset": ["75%", "100%"],
       "regular": ["100%", "100%"],
-      "regular-bottom": ["100%", "100%"],
-      "overmargin-bottom": ["130%", "100%"]
+      "regular-bottom": ["100%", "100%"]
     }
   },
   "FdAI": {
     "journalId": "FdAI",
     "journalMainColor": "#557ebb",
     "journalMainColorHighContrast": "#557ebb",
-    "figCaptionsAtPageBottom": false,
     "logoPath": "src/css/assets/graphics/FdAI_Logo.png",
     "figureTypesettingClass": {
       "tiny-landscape": "float-w-col-2",

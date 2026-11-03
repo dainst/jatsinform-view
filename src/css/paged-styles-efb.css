@@ -8,143 +8,171 @@
     --footnote-text-color:  black;
     --metadata-text-color: #030303;
     --color-marginBox: transparent;
-    --para-font: "Noto Sans Regular"; /* "Noto Sans Regular"; */
-    --para-font-bold: "Noto Sans Semi Bold";
+    --para-font: "Noto Sans Light"; /* "Noto Sans Regular"; */
+    --para-font-bold: "Noto Sans Regular"; /* Noto Sans Semi Bold */
     --headline-font: "Geometria Light";
     --short-text-font: "Geometria Bold";
     --caption-font: "Geometria Light";
-    --p-font-size: 11pt;
-    --line-height-para: 1.25; /* 15 pt */
-    --footnote-font-size: 11pt; /* endnotes */
-    --caption-font-size: 10pt;
-    --line-height-cap: 1.27; /* 14pt */
-    --li-font-size: 11pt; 
-    --meta-element-font-size: 11pt; 
-    --imgMarginBottom: 2.5mm;
-    --floatFigureMarginToText: 7.5mm;
-    --floatFigureMarginBottom: 5mm;
+    --p-font-size: 10pt;
+    --line-height-para: 1.5; /* 15 pt */
+    --footnote-font-size: 10pt; /* endnotes */
+    --caption-font-size: 9pt;
+    --line-height-cap: 1.25; /* 14pt */
+    --li-font-size: 10pt; 
+    --meta-element-font-size: 10pt; 
+    --imgMarginBottom: 1mm;
+    --floatFigureMarginToText: 0;
+    --floatFigureMarginBottom: 0;
     --floatFigureOffsetToMarginArea: 0;
     --figureMarginBottomDefault: 5mm;
-    --max-page-content-height: 952; 
+    --max-page-content-height: 620; 
     --pagedjs-crop-color: black;
     --pagedjs-crop-shadow: white;
     --pagedjs-crop-stroke: 1px;
     --pagedjs-padding-top: 5mm;
+    --pagedjs-padding-bottom: 5mm;
 }
 
 /* page styles
 ---------------------*/
 @page {
-    size: 210mm 297mm;
+    size: A4 landscape;
     margin-top: 20mm;
     margin-bottom: 20mm;
-    margin-left: 23mm;
-    margin-right: 35mm; 
+    margin-left: 20mm; 
+    margin-right: 20mm;
     /* marks: crop cross; */
-    @top-center {
-        content: var(--journal-title) " - " var(--volume);
+    @top-left {
+        content: var(--journal-title) " des DAI";
         font-family: var(--para-font);
-        font-size: 8pt;
+        font-size: 9pt;
         font-weight: 300;
         line-height: 1.5;
         align-items: end;
-        color: var(--journal-color);
+        color: black;
         padding-bottom: 1mm;
         margin-bottom: 2mm;
-        border-bottom: 1pt solid var(--journal-color);
-        text-align: center;
+        border-bottom: 0.25pt solid black; 
+        border-width: thin;
+        text-align: left;
     }
-    @bottom-center {
+    @top-center{
+        content: " · " var(--volume);
+        font-family: "Noto Sans Semi Bold";
+        font-size: 9pt;
+        line-height: 1.5;
+        align-items: end;
+        color: var(--journal-color);
+        font-weight:600;
+        margin-left: -42mm;
+        padding-bottom: 1mm;
+        margin-bottom: 2mm;
+        border-bottom: 0.25pt solid black;
+        border-width: thin;
+        text-align: left;
+    }
+    @top-right {
         content: counter(page);
         font-family: var(--para-font);
-        font-size: 11pt;
+        font-size: 10pt;
+        font-weight: 300;
+        line-height: 1.5;
+        align-items: end;
+        color: black;
+        padding-bottom: 1mm;
+        margin-bottom: 2mm;
+        border-bottom: 0.25pt solid black; 
+        border-width: thin;
+        text-align: right;
     }
 }
 
 @page :left {
-    margin-left: 23mm; 
-    margin-right: 35mm;
+    margin-left: 20mm; 
+    margin-right: 20mm;
 }
 
 @page :right {
-    margin-left: 23mm;
-    margin-right: 35mm;
+    margin-left: 20mm; 
+    margin-right: 20mm;
 }
 
 /* issue frontmatter page */
 @page :first {
+    margin-top: 70mm;
+    margin-bottom: 5mm;
     counter-increment: page 0;
     font-family: "Geometria Bold";
     counter-increment: page 0;
-    margin-bottom: 10mm;
-    background: url("assets/graphics/background-efb-cover.jpg");
-    background-position: var(--background-position);
+    background: url("assets/graphics/bkg-efb-cover-landscape.png") var(--journal-color);
     background-size: cover;
+    background-position-y: -5mm;
     background-repeat: no-repeat;
-    @top-center {
+    @top-left {
         content: "";
+        border: none;
     }
-    @bottom-right {
-        content: "";
-    }
-    @bottom-left-corner {
-        content: "";
-    }
-    @bottom-center {
-        content: ""
-    }
-}
-
-@page coverPage {
-    counter-increment: page 0;
-    background: var(--background-url) #ffffff;
-    background-position: 0 0; /* 0 15m */
-    background-size: contain;
-    background-repeat: no-repeat;
-
     @top-center {
         content: "";
         border: none;
     }
-    @bottom-right {
+    @top-right {
         content: "";
+        border: none;
+    }
+    @bottom-left-corner {
+        content: "";
+    }
+    @bottom-left {
+        content: "";
+    }
+    @bottom-center {
+        content: "";
+    }
+}
+
+@page coverPage {
+    margin-top: 75mm;
+    margin-bottom: 10mm;
+    counter-increment: page 0;
+    background: var(--background-url) #ffffff;
+    background-size:contain;
+    background-repeat: no-repeat;
+    
+    @top-left {
+        content: "";
+        border: none;
+    }
+    @top-center {
+        content: "";
+        border: none;
+    }
+    @top-right {
+        content: "";
+        border: none;
     }
     @bottom-right-corner {
         content: "";
     }
+    @bottom-left {
+        content: "";
+    }
     @bottom-center {
-        content: ""
+        content: "";
     }
 }
 
 @page projectMetaPage {
     counter-increment: page 0;
-    @top-center {
-        content: var(--journal-title) " - " var(--volume);
-        font-family: var(--para-font);
-        font-size: 8pt;
-        font-weight: 300;
-        line-height: 1.5;
-        align-items: end;
-        color: var(--journal-color);
-        padding-bottom: 1mm;
-        margin-bottom: 2mm;
-        border-bottom: 1pt solid var(--journal-color);
-        text-align: center;
-    }
-    @top-center {
+    @top-right {
         content: "";
-        border: none;
-    }
-    @bottom-center {
-        content: ""
     }
 }
 
 @media screen, pagedjs-ignore {
     body {
-        background: url(assets/graphics/idaiworld-banner.png);
-    }
+        background: rgb(61, 61, 61);
+    } 
 
     .pagedjs_pages {
         display: flex;
@@ -215,6 +243,7 @@
         box-shadow: 0 0 0 1px inset var(--color-marginBox);
     }
 }
+￼
 
 /* main components:
 --------------------*/
@@ -222,20 +251,55 @@ body {
     text-rendering: optimizeLegibility;
 }
 
+.html-wrapper {
+    display:flex;
+}
+
+.text-body {
+    width: 50%;
+    margin-left: 10mm;
+ }
+
+.text-body.two-columns {
+    width:100%;
+    margin-left:0 !important;
+    column-count: 2;
+    -webkit-column-count: 2;
+    -moz-column-count: 2;
+    column-fill: auto;
+    column-gap: 10mm;
+}
+
+.fig-column-block {
+    width:50%;
+}
+
+.pseudo-node {
+   visibility: hidden;
+}
+
 /* issue-page:
  ----------------*/
 #journal-title {
     font-family: var(--short-text-font);
     color:white;
-    margin-top: 125mm;
     font-size: 22pt;
+    margin-top: 4mm;
 }
 
 #volume {
     font-family: var(--short-text-font);
     font-size: 17pt;
     color: white;
-    margin-top: 5mm;
+    margin-top:5mm;
+}
+
+#topic-location-image {
+    margin-top: 15mm;
+}
+
+#topic-location-image > img {
+    width:60%;
 }
 
 #topic-location {
@@ -243,15 +307,15 @@ body {
     color: white;
     font-size: 12pt;
     font-weight: 300;
-    margin-top: 50mm;
+    margin-top: 35mm;
 }
 
 #topic-location > i {
     display:block;
     font-size: 20pt;
-    margin-bottom: 2.5mm;
     color: #b5b5b1;
-}
+    margin-bottom: 2.5mm;
+} 
 
 #topic-location > i::before {
     content: "";
@@ -264,12 +328,12 @@ body {
 }
 
 #title-department {
-    font-family: var( --headline-font);
+    font-family: var(--headline-font);
     color: white;
-    font-size: 17pt;
+    font-size: 18pt;
     font-weight: 400;
     text-transform: uppercase;
-    margin-top: 30.5mm;
+    margin-top: 30mm;
 }
 
 #title-department:before {
@@ -280,11 +344,15 @@ body {
 
 /* cover-page:
  ----------------*/
+
+[data-id="title-elements"]  {
+    /* margin-top: 10mm; */
+}
+
 .title-header-title {
     page: coverPage;
-    margin-top: 80mm;
     font-family: var(--short-text-font);
-    font-size: 17pt;
+    font-size: 16pt;
     line-height:1.25;
     text-transform:uppercase;
     color:black;
@@ -293,7 +361,7 @@ body {
 .title-header-subtitle {
     page: coverPage;
     font-family: var(--headline-font);
-    font-size: 17pt;
+    font-size: 15pt;
     line-height:1.25;
     font-weight: 300;
     color:black;
@@ -301,35 +369,34 @@ body {
 
 .title-header-authors {
     font-family: var(--para-font); 
-    font-size: 12pt;
+    font-size: 11pt;
     line-height: 1.5;  
     font-weight: 300;
-    font-style:italic;
-    margin: 0;
     color: #000000;
 }
 
 .title-header-contributors {
     font-family: var(--para-font); 
-    font-size: 12pt;
+    font-size: 11pt;
     line-height: 1.5;  
     font-weight: 300;
-    font-style:italic;
-    margin: 0;
     color: #000000;
 }
 
+/* abstract section
+-----------------------*/
 .abstract {
+    margin-top: 10mm;
     break-after: page;
 }
 
 .abstract-headline {
     font-family: var(--short-text-font) !important;
-    font-size: 14pt;
+    font-size: 11pt;
     text-transform: uppercase;
     color: black;
     margin-bottom: 2mm;
-    margin-top: 5mm;
+    margin-top: 0;
 }
 
 .abstract-title {
@@ -365,14 +432,6 @@ body {
     line-height: 1.35;
 }
 
-.keywords-headline {
-    font-family: var(--short-text-font) !important;
-    font-size: 14pt;
-    text-transform: uppercase;
-    color: black;
-    margin-bottom: 5pt;
-}
-
 .kwd-group {
     font-family: var(--para-font);
     color: black;
@@ -383,11 +442,23 @@ body {
     line-height: 1.35;
 }
 
-/* project meta page
+.keywords-headline {
+    font-family: var(--short-text-font) !important;
+    font-size: 11pt;
+    text-transform: uppercase;
+    color: black;
+    margin-bottom: 5pt;
+    
+}
+
+/* project meta section
 -----------------------*/
 #project-meta-section {
     page: projectMetaPage;
     break-after: page;
+    column-count:2;
+    column-gap: 10mm;
+    margin-top: 3mm;
 }
 
 #project-meta-section > p {
@@ -402,12 +473,13 @@ body {
 
 .project-meta-title {
     font-family: var(--short-text-font) !important;
-    font-size: 14pt;
+    font-size: 11pt;
     text-transform: uppercase;
     color: black;
     margin-top: 0;
     margin-bottom: 2mm;
 }
+
 
 /* text blocks
 -----------------*/
@@ -497,7 +569,6 @@ h1, h2, h3, h4, h5, h6 {
 .title {
     font-family: var(--headline-font);
     page-break-inside: avoid;
-
     /*
     text-wrap: balance;
     hyphens: manual;
@@ -511,11 +582,11 @@ h1, h2, h3, h4, h5, h6 {
 
 .main-section-title {
     font-family: var(--headline-font);
-    font-size: 17pt;
+    font-size: 14pt;
     line-height: 1.2;
     font-weight: 300;
-    text-transform: uppercase;
-    margin: 10mm 0 6.35mm 0;
+    /* text-transform: uppercase; */
+    margin: 7.5mm 0 2.5mm 0;
 }
 
 .main-section-title.first-element {
@@ -526,22 +597,22 @@ h1, h2, h3, h4, h5, h6 {
 .section-title {
     font-family: var(--headline-font);
     font-weight: 300;
-    font-size: 17pt;
+    font-size: 14pt;
     line-height: 1.2;
-    margin: 6.35mm 0 4.25mm 0;
+    margin: 6.35mm 0 4mm 0;
 }
 
 .subsection-title {
     font-family: var(--headline-font);
     font-weight: 300;
-    font-size: 17pt;
+    font-size: 14pt;
     line-height: 1.2;
     margin: 5mm 0 2mm 0;
 }
 
 .title-appendix {
     font-family: var(--short-text-font);
-    font-size: 14pt !important;
+    font-size: 11pt !important;
     line-height: 1.5; 
     color: black;
     text-transform: uppercase;
@@ -656,15 +727,17 @@ table td:first-child { border-left: none; }
 -------------------------------*/
 .meta-section {
     width: 100%;
-    column-count: 1;
+    column-count: 2;
     column-fill: auto;
-    column-gap: 8mm;
+    column-gap: 10mm;
     break-after: page;
     break-before: page;
+
 }
 
 /* endnotes-section (e.g. for e-fb)
 ----------------------------------*/
+
 #endnotes-section {
     break-after: page;
     break-before: page;
@@ -698,7 +771,7 @@ table td:first-child { border-left: none; }
 
 [data-id="endnotes-section"] .main-section-title {
    font-family: var(--short-text-font);
-    font-size: 14pt;
+    font-size: 11pt;
     text-transform: uppercase;
     color: black;
     margin: 0 0 6.35mm 0;
@@ -707,6 +780,7 @@ table td:first-child { border-left: none; }
 a.backLinkToFnRef:before {
     content: "\260D";
     padding-right: 2mm;
+    font-size: 9pt;
 }
 
 /* reference List
@@ -719,7 +793,7 @@ a.backLinkToFnRef:before {
 
 #reference-list .main-section-title {
     font-family: var(--short-text-font);
-    font-size: 14pt;
+    font-size: 11pt;
     text-transform: uppercase;
     color: black;
     margin: 0 0 6.35mm 0;
@@ -778,7 +852,7 @@ a.backLinkToFnRef:before {
 
 #source-of-illustrations .main-section-title {
     font-family: var(--short-text-font);
-    font-size: 14pt;
+    font-size: 11pt;
     text-transform: uppercase;
     color: black;
     margin: 0 0 6.35mm 0;
@@ -1172,11 +1246,11 @@ figure {
 }
 
 figure.first-element {
-    margin-top: 0 !important;
+    margin-top: 1mm !important;
 }
 
 figure.onTopOfPage {
-    margin-top: 0 !important;
+    margin-top: 1mm !important;
 }
 
 img {
@@ -1186,6 +1260,7 @@ img {
 
 img:hover{
     box-shadow: 0em 0em 0px 1px rgb(239, 101, 238);
+    display: inline;
 }
 
 figCaption {
@@ -1239,16 +1314,8 @@ p.alt-text {
 styles for classified images
 ----------------------------------*/
 
-.float-w-col-2.left-page {
-    float: right;
-    clear: both;
-    margin-left: var(--floatFigureMarginToText) !important;
-    margin-right: var(--floatFigureOffsetToMarginArea) !important; 
-    margin-bottom: var(--floatFigureMarginBottom) !important;
-    margin-top: 1mm !important;
-}
 
-.float-w-col-2.right-page {
+.float-w-col-2 {
     float: left;
     clear: both;
     margin-left: var(--floatFigureOffsetToMarginArea) !important;
@@ -1257,86 +1324,30 @@ styles for classified images
     margin-top: 1mm !important;
 }
 
-.float-w-col-4.left-page {
+.float-w-col-2 > figcaption {
+    display: block; 
+    bottom: 0;
+    position: absolute;
+    width: 100%;
     float: right;
-    clear: both;
-    margin-right: var(--floatFigureOffsetToMarginArea) !important;
-    margin-left: var(--floatFigureMarginToText) !important;
-    margin-bottom: var(--floatFigureMarginBottom) !important;
-    margin-top: 0;
-}
-
-.float-w-col-4.right-page {
-    float: left;
-    clear: both;
-    margin-left: var(--floatFigureOffsetToMarginArea) !important;
-    margin-right: var(--floatFigureMarginToText) !important;
-    margin-bottom: var(--floatFigureMarginBottom) !important;
-    margin-top: 0;
-}
-
-.float-w-col-6.left-page {
-    float: right;
-    clear: both;
-    margin-right: var(--floatFigureOffsetToMarginArea) !important;
-    margin-left: var(--floatFigureMarginToText) !important;
-    margin-bottom: var(--floatFigureMarginBottom) !important;
-    margin-top: 0;
-}
-
-.float-w-col-6.right-page {
-    float: left;
-    clear: both;
-    margin-left: var(--floatFigureOffsetToMarginArea) !important;
-    margin-right: var( --floatFigureMarginToText) !important;
-    margin-bottom: var(--floatFigureMarginBottom) !important;
-    margin-top: 0;
-}
-
-.float-w-col-6.first-element {
-    margin-top: 0 !important;
-}
-
-.float-w-col-4.first-element {
-    margin-top: 0 !important;
-}
-
-.float-w-col-2.first-element {
-    margin-top: 0 !important;
+    left: 110%;
+    height: 100%;
 }
 
 .inset {
-    display: flex;
-    margin-bottom: 7.5mm !important;
-    align-items: stretch;
-}
-
-.inset > img {
-    display:flex !important;
-    margin: 0;
-    min-width: 50%;
-    max-width: 75%;
+    margin-bottom: var(--figureMarginBottomDefault) !important;
 }
 
 .inset > figcaption {
-    display:flex !important;
-    margin: 0 0 0 7.5mm !important;
-    margin: 0;
-    min-width: 15%;
-    max-width: 25%;
-}
-
-.regular.right-page > figCaption {
     position: absolute;
-    width: 25%!important;
-    float: left;
-    margin-left: -30%;
-    padding: 5mm 0;
-    left: 0;
-    bottom: 0;
+    width: 30mm !important;
+    padding: 0;
+    right: -35mm;
+    top: 0;
+    margin: 0;
 }
 
-.regular.left-page > figCaption {
+.regular > figCaption {
     position: absolute;
     width: 25%!important;
     float: right;
@@ -1350,52 +1361,6 @@ styles for classified images
     width: 100% !important;
     margin-bottom: 2.5mm;
     display: block;
-}
-
-.overmargin.right-page {
-    margin-left: -40mm;
-    margin-bottom: 5mm;
-}
-
-.overmargin.right-page {
-    margin-left: -40mm;
-    margin-bottom: 5mm;
-}
-
-.overmargin.right-page > figCaption {
-    position: absolute;
-    width: 32.5mm !important;
-    float: left;
-    margin-top: 2.5mm;
-    left: 0;
-}
-
-.overmargin.left-page > figCaption {
-    position: absolute;
-    width: 32.5mm !important;
-    float: right;
-    margin-top: 2.5mm;
-    right: 0;
-}
-
-.overmargin-bottom.right-page {
-    margin-left: -40mm;
-    margin-bottom: 5mm;
-}
-
-.overmargin-bottom.left-page {
-    margin-right: -40mm;
-    margin-bottom: 5mm;
-}
-
-.overmargin-bottom > figcaption {
-    width: 100% !important;
-    margin-top: 2.5mm;
-    display: block;
-}
-
-.overmargin-bottom > .fig-number {
-    display:none;
 }
 
 /* Table of contents (ToC)

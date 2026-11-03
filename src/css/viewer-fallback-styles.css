@@ -1,11 +1,10 @@
 div#error-message {
-   position:sticky;
-   top:0;
-   font-size:0.9rem;
-   background:#000000;
-   color:rgb(255, 255, 255);
+   top: 0;
+   font-size: 0.9rem;
+   background: #000000b0;
+   color: rgb(255, 255, 255);
    margin-bottom: 1%;
-   padding: 1%;
+   padding: 1vh;
 }
 
 body {
@@ -16,7 +15,7 @@ body {
 
  #main-wrapper {
     margin: auto;
-    width: 90vw;
+    width: 75%;
  }
 
 .panel-navigation {
@@ -27,6 +26,10 @@ body {
    background: var(--journal-color);
    width: 50%;
  }
+
+ .logo-img {
+   display: none;
+}
 
  #abstract-navigation {
     display:none;
@@ -102,7 +105,7 @@ details {
 .meta-name {
     text-transform: capitalize;
     display:block;
-    color: var(--journal-color);
+    color: black;
 }
 
 .meta-name:after {

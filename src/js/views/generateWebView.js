@@ -1,6 +1,32 @@
-/** -----------------------------------
-* Create main DOM-elements as constants
-----------------------------------------*/
+// Web-view DOM elements
+// ---------------------
+// Public API: webView.render()
+
+// Dependencies supplied by the application entry point.
+let applicationContext;
+let getDocumentStateProperty;
+let checkQualityOfUrls;
+let reportDiagnostic;
+let URLifyString;
+let generateRandomString;
+let systemNotice;
+let defaultTitles;
+let contributorsPrepositions;
+
+function configureWebView(dependencies) {
+    ({
+        applicationContext,
+        getDocumentStateProperty,
+        checkQualityOfUrls,
+        reportDiagnostic,
+        URLifyString,
+        generateRandomString,
+        systemNotice,
+        defaultTitles,
+        contributorsPrepositions
+    } = dependencies);
+}
+
 // initialize navigationPanels array:
 const navigationPanelsDocument = [];
 const navIcons = {
@@ -52,146 +78,144 @@ panelWrapper.ariaLabel = "Supplementary panel";
 panelWrapper.role = "region";
 panelWrapper.tabIndex = -1;
 
-  // add search-log:
+// add search-log:
 const searchLog = document.createElement("div");
 searchLog.id = "search-log";
 
-/** --------------------------------------
- * window document state event listener:
- * @type {document}
- * @type {EventListenerObject}
- --------------------------------------*/
- document.addEventListener("readystatechange", (event) => {
+// Web-view initialization
+// -----------------------
+function generateWebView() {
 
-    if (event.target.readyState === "complete") {
+    // get html-wrapper and front (meta):
+    let htmlWrapper = document.querySelector("#html-wrapper");
+    let front = htmlWrapper.querySelector(".front");
 
-        // get html-wrapper and front (meta):
-        let htmlWrapper = document.querySelector("#html-wrapper");
-        let front = htmlWrapper.querySelector(".front");
+    // create cover area: 
+    let coverArea = createCoverArea(htmlWrapper);
 
-        // create cover area: 
-        let coverArea = createCoverArea(htmlWrapper);
-
-        // append projectMetaSection to coverArea:
-        let projectMetaSection = createProjectMetaSection(front);
-        coverArea.appendChild(projectMetaSection);
-     
-        // append abstracts to coverArea:
-        let abstractSection = getAbstractSection(htmlWrapper);
-        coverArea.appendChild(abstractSection);
-
-        // add cover-area to navigation-panel first:
-        const panelMainText = createPanel("cover", false);
-        panelMainText.prepend(createSkipLinks());
-        panelMainText.appendChild(coverArea);
-        navigationPanelsDocument.push("cover")
-
-        // create content panel (ToC):
-        let lang = document.documentElement.lang;
-        let contentsTitle = defaultTitles["contents"][lang];
-        const panelContents = createPanel("contents", contentsTitle, false);
-        navigationPanelsDocument.push("contents");
-
-        // get supplement link anchors:
-        let anchors = document.querySelectorAll( // exclude weblinks and zenon-links
-            "a.ext-ref:not([data-specific-use='weblink']):not([data-specific-use='zenon']");
-
-        // extract supplementLinks:
-        let supplementsLinks = extractSupplementsLinks(anchors);
-
-        // filter (only unique targets):
-        supplementsLinks = supplementsLinks.
-            filter(supplementLink => supplementLink.isUnique == true);
-
-        // count targets of supplementLinks:
-        let numSupplements = countSupplementLinkTargets(supplementsLinks);
-
-        // create content and supplementary panels:
-        createContentPanels(htmlWrapper);
-        createSupplementPanels(numSupplements);
-
-        // fetch supplementary data from external sources:
-        fetchExternalData(supplementsLinks);
-
-        // create meta-panel:
-        let panelMeta = createPanel("metadata", "Metadata", false);
-        navigationPanelsDocument.push("metadata");
-       
-        // create meta section:
-        let metaSection;
-        if(front !== null) {
-            metaSection = createMetaSection(front);
-            panelMeta.appendChild(metaSection);
-        }
-        panelWrapper.appendChild(panelMeta);
-
-        // get main-text:
-        let textBody = htmlWrapper.querySelector(".text-body");
-
-        // create ToC-list and add to panel contents:
-        let tocList = createToCByHeadlines(textBody);
-
-        // add text-body to textContentWrapper
-        textContentWrapper.append(textBody);
-        textContentWrapper.insertAdjacentElement("afterbegin", topElement)
-        textContentWrapper.insertAdjacentElement("beforeend", backToTop);
-        panelContents.appendChild(tocList);
-
-        // add panelContents and mainTextPanel to panelWrapper
-        panelWrapper.appendChild(panelContents);
-        panelWrapper.appendChild(panelMainText);
-        panelWrapper.appendChild(searchLog);
-
-        // add content wrappers to article:
-        article.appendChild(textContentWrapper);
-        
-        // add panel-state anchors for css-based panel navigation:
-        article.appendChild(appendPanelStateAnchors(navigationPanelsDocument));
-        article.appendChild(panelWrapper);
+    // append projectMetaSection to coverArea:
+    let projectMetaSection = createProjectMetaSection(front);
+    coverArea.appendChild(projectMetaSection);
     
-        // add main header and article to main:
-        main.appendChild(article);
+    // append abstracts to coverArea:
+    let abstractSection = getAbstractSection(htmlWrapper);
+    coverArea.appendChild(abstractSection);
 
-        // add mainHeader and main to body:
-        document.body.appendChild(mainHeader);
-        document.body.appendChild(main);
-        createPanelNavigation(navigationPanelsDocument);
+    // add cover-area to navigation-panel first:
+    const panelMainText = createPanel("cover", false);
+    panelMainText.prepend(createSkipLinks());
+    panelMainText.appendChild(coverArea);
+    navigationPanelsDocument.push("cover")
 
-        // add stats section:
-        let statsSection = createDocumentStats(numSupplements);
-        panelContents.appendChild(statsSection);
+    // create content panel (ToC):
+    let lang = document.documentElement.lang;
+    let contentsTitle = defaultTitles["contents"][lang];
+    const panelContents = createPanel("contents", contentsTitle, false);
+    navigationPanelsDocument.push("contents");
 
-        // add dai-home link to panelNavigation:
-        addDaiHomeLinkToPanelNavigation();
-        
-        // remove <front> and <back> and htmlWrapper (empty)
-        if(htmlWrapper.querySelector(".front") !== null) {htmlWrapper.querySelector(".front").remove();}
-        if(htmlWrapper.querySelector(".back") !== null) {htmlWrapper.querySelector(".back").remove();}
-        if(htmlWrapper !== undefined) htmlWrapper.remove();
+    // get supplement link anchors:
+    let anchors = document.querySelectorAll( // exclude weblinks and zenon-links
+        "a.ext-ref:not([data-specific-use='weblink']):not([data-specific-use='zenon']");
 
-        // define image scaling:
-        document.querySelectorAll('img:not(.logo-img,.poster-img)').forEach(function(img) {
-            img.onerror = function(){this.style.display='none';};
-            img.setAttribute("loading", "lazy");
-            img.title = "Right-click or press on image for image-specific features";
-            scaleImage(img);
+    // extract supplementLinks:
+    let supplementsLinks = extractSupplementsLinks(anchors);
+
+    // filter (only unique targets):
+    supplementsLinks = supplementsLinks.
+        filter(supplementLink => supplementLink.isUnique === true);
+
+    // count targets of supplementLinks:
+    let numSupplements = countSupplementLinkTargets(supplementsLinks);
+
+    // create content and supplementary panels:
+    createContentPanels(htmlWrapper);
+    createSupplementPanels(numSupplements);
+
+    // fetch supplementary data from external sources:
+    fetchExternalData(supplementsLinks).catch(error => {
+        reportDiagnostic("warning", "External data processing stopped unexpectedly", {
+            code: "external-data-processing-error",
+            cause: error
         });
+    });
 
-        // init additional js-functions:
-        checkQualityOfUrls();
-        createIndexOfInternalReferences("figure:not(#journal-logo)", "fig-ref");
-        createIndexOfInternalReferences(".reference", "bib-ref");
-        addTitleAttributesAsAccessablityHelper();
-
-        // fade-in:
-        document.body.classList.add("fade-in");
+    // create meta-panel:
+    let panelMeta = createPanel("metadata", "Metadata", false);
+    navigationPanelsDocument.push("metadata");
+    
+    // create meta section:
+    let metaSection;
+    if(front !== null) {
+        metaSection = createMetaSection(front);
+        panelMeta.appendChild(metaSection);
     }
-});
+    panelWrapper.appendChild(panelMeta);
 
+    // get main-text:
+    let textBody = htmlWrapper.querySelector(".text-body");
 
-/** -----------------------------
-* Generate HTML view of document
---------------------------------*/
+    // create ToC-list and add to panel contents:
+    let tocList = createToCByHeadlines(textBody);
+
+    // add text-body to textContentWrapper
+    textContentWrapper.append(textBody);
+    textContentWrapper.insertAdjacentElement("afterbegin", topElement)
+    textContentWrapper.insertAdjacentElement("beforeend", backToTop);
+    panelContents.appendChild(tocList);
+
+    // add panelContents and mainTextPanel to panelWrapper
+    panelWrapper.appendChild(panelContents);
+    panelWrapper.appendChild(panelMainText);
+    panelWrapper.appendChild(searchLog);
+
+    // add content wrappers to article:
+    article.appendChild(textContentWrapper);
+    
+    // add panel-state anchors for css-based panel navigation:
+    article.appendChild(appendPanelStateAnchors(navigationPanelsDocument));
+    article.appendChild(panelWrapper);
+
+    // add main header and article to main:
+    main.appendChild(article);
+
+    // add mainHeader and main to body:
+    document.body.appendChild(mainHeader);
+    document.body.appendChild(main);
+    createPanelNavigation(navigationPanelsDocument);
+
+    // add stats section:
+    let statsSection = createDocumentStats(numSupplements);
+    panelContents.appendChild(statsSection);
+
+    // add dai-home link to panelNavigation:
+    addDaiHomeLinkToPanelNavigation();
+    addLayoutSwitchToDocument();
+    
+    // remove <front> and <back> and htmlWrapper (empty)
+    if(htmlWrapper.querySelector(".front") !== null) {htmlWrapper.querySelector(".front").remove();}
+    if(htmlWrapper.querySelector(".back") !== null) {htmlWrapper.querySelector(".back").remove();}
+    if(htmlWrapper !== undefined) htmlWrapper.remove();
+
+    // define image scaling:
+    document.querySelectorAll('img:not(.logo-img,.poster-img)').forEach(function(img) {
+        img.onerror = function(){this.style.display='none';};
+        img.setAttribute("loading", "lazy");
+        img.title = "Right-click or press on image for image-specific features";
+        scaleImage(img);
+    });
+
+    // init additional js-functions:
+    checkQualityOfUrls();
+    createIndexOfInternalReferences("figure:not(#journal-logo)", "fig-ref");
+    createIndexOfInternalReferences(".reference", "bib-ref");
+    addTitleAttributesAsAccessablityHelper();
+
+    // fade-in:
+    document.body.classList.add("fade-in");
+}
+
+// Web-view generation
+// -------------------
 
 /**
  * create article header
@@ -281,8 +305,8 @@ function createCoverArea(htmlWrapper) {
     // create journal logo:
     let logo = document.createElement("figure");
     logo.id ="journal-logo";
-    if(localStorage.getItem("journal-config") !== null) {
-        let journalConfig = JSON.parse(localStorage.getItem("journal-config"));
+    if(applicationContext.document?.journalConfig) {
+        let journalConfig = applicationContext.document.journalConfig;
         let logoPath = journalConfig["logoPath"];
         let logoImg = document.createElement("img");
         logoImg.classList.add("logo-img");
@@ -305,9 +329,9 @@ function createCoverArea(htmlWrapper) {
 }
 
 /**
- * create DOI element, added as first element on top of page
- * @returns {HTMLElement} doiElement: div with anchor as child and doi as href
- * and textContent
+ * create DOI element with doi-logo, added as first element on top of page
+ * @returns {HTMLElement} doiElement: div with anchor as child, doi-logo img
+ * and doi-url as href and as textContent
  */
 function createDoiElement() {
 
@@ -316,13 +340,23 @@ function createDoiElement() {
     let doi = (documentId) ? documentId : "no-doi-assigned";
 
     // create anchor element:
-    let doiAnchor = document.createElement("a");
+    const doiAnchor = document.createElement("a");
     doiAnchor.id = "doi-anchor";
     doiAnchor.target = "_blank";
     doiAnchor.rel = "noopener noreferrer";
     doiAnchor.ariaLabel = "DOI (opens in new tab)";
     doiAnchor.href = doi;
     doiAnchor.textContent = doi;
+
+    // create logon icon img:
+    const doiIcon = document.createElement("img");
+    doiIcon.id = "doi-logo-icon";
+    doiIcon.classList.add("logo-img");
+    doiIcon.src = "src/css/assets/graphics/DOI_logo.svg";
+    doiIcon.ariaHidden = "true";
+
+    // add logo before doi-url
+    doiAnchor.prepend(doiIcon);
 
     return (doiAnchor);
 }
@@ -763,10 +797,24 @@ function createContributorsCard(contributor) {
 
       // wrap preferredFullName into anchor with orcid-link:
     if(contributor.querySelector(".contrib-id") !== null) {
+
+        // add orcid links
         contribIdLink.classList.add("contributor-link");
         contribIdLink.target = "_blank";
-        contribIdLink.href = contributor.querySelector(".contrib-id").textContent;
-        contribIdLink.innerHTML = preferredFullName
+        contribIdLink.href = contributor.querySelector(".contrib-id")
+            .textContent;
+        contribIdLink.innerHTML = preferredFullName;
+
+        // add orcid icon
+        const orcidIcon = document.createElement("img");
+        orcidIcon.id = "orcid-icon";
+        orcidIcon.classList.add("logo-img");
+        orcidIcon.src = "src/css/assets/graphics/ORCID.png";
+        orcidIcon.alt = "";
+        orcidIcon.ariaHidden = "true";
+        contribIdLink.prepend(orcidIcon); // before name
+
+        // append to author name
         name.append(contribIdLink);
     } 
     // display full name only:
@@ -778,13 +826,29 @@ function createContributorsCard(contributor) {
      // parse and reorder affiliation information: 
     if(contributor.querySelector(".institution") !== null) {
         if(contributor.querySelector(".institution-id") !== null) {
+
+            // add ror-link element:
             let institutionId = contributor.querySelector(".institution-id").textContent;
             institutionIdLink.classList.add("institution-link");
             institutionIdLink.target = "_blank";
             institutionIdLink.href = institutionId;
             institutionIdLink.innerHTML = contributor.querySelector(".institution").textContent;
+
+            // add ror icon:
+            const rorIcon = document.createElement("img");
+            rorIcon.id = "ror-icon";
+            rorIcon.classList.add("logo-img");
+            rorIcon.src = "src/css/assets/graphics/ROR.png";
+            rorIcon.alt = "";
+            rorIcon.ariaHidden = "true";
+            institutionIdLink.prepend(rorIcon); // before name
+
+            // append to institution
             institution.append(institutionIdLink);
-        } else { institution.innerHTML = contributor.querySelector(".institution").textContent;}
+
+        } else { 
+            institution.innerHTML = contributor.querySelector(".institution").textContent;
+        }
         contributorsCard.append(institution);
     };
 
@@ -958,7 +1022,7 @@ function createPanel(panelName, defaultTitle = false, content = false) {
     if(content) {panel.appendChild(content);}
 
     // no panel title for metadata and cover
-    if(panelName == "metadata" || panelName == "cover" ) {
+    if(panelName === "metadata" || panelName === "cover" ) {
        return(panel);
     }
 
@@ -1086,9 +1150,9 @@ function createIndexOfInternalReferences(elementSelector, referenceSelector) {
                     let labelAnchor = document.createElement("a");
                     labelAnchor.classList.add("index-ref");
                     labelAnchor.href = "#" + refIndex.refLinks[i];
-                 
+
                     // define targetPanelName for back-anchor 
-                    if(refIndex.quotesTargetSection[i] == "main-text") {
+                    if(refIndex.quotesTargetSection[i] === "main-text") {
                         labelAnchor.setAttribute("data-target-section", "contents");
                         labelAnchor.title = "Jump to " + refIndex.refLinks[i] + " in main text";
                     } else {
@@ -1292,10 +1356,11 @@ function createPanelNavigation(navigationPanelsDocument) {
     let panelNavigationHint = document.createElement("span");
     panelNavigationHint.id = "panel-navigation-hint";
     panelNavigationHint.classList.add("screenreader-only");
-    panelNavigationHint.textContent = "Activates panel content on the right side.";
+    panelNavigationHint.textContent = "Activates the selected article or supplementary content view.";
     panelNavigation.appendChild(panelNavigationHint);
 
     let panelNavigationList = document.createElement("ul");
+    panelNavigationList.classList.add("navigation", "list");
     panelNavigationList.ariaLabel = "navigation list";
 
     // create elements for each panel name:
@@ -1420,9 +1485,8 @@ function reorderFigureElements(figureSection) {
     return(figureSection);
 }
 
-/** ---------------------------------
-* supplementary data related function
---------------------------------------*/
+// Supplementary data
+// ------------------
 /**
  * append fetch-state-bar to panel
  * @param {HTMLElement} panel div with panel title and content
@@ -1525,7 +1589,7 @@ function redefineTargetsOfSupplementLinkAnchors(supplementLinks) {
         // find duplicate anchors and point to unique url:
         if(!isUnique) {
             for (const [key, value] of Object.entries(supplementLinks)) {
-                if (value.isUnique == true && value.apiUrl === apiUrl) {
+                if (value.isUnique === true && value.apiUrl === apiUrl) {
                     refAnchorId = value.refAnchorId; // unique anchor
                 }
             };
@@ -1595,7 +1659,7 @@ function getApiRefUrl(url) {
             }
             break;
         case (/field.idai.world/.test(url.hostname)):
-            objectId = url.pathname.split("/")[3];;
+            objectId = url.pathname.split("/")[3];
             if(objectId !== undefined) {
                 apiRefUrl.apiUrl = "https://field.idai.world/api/documents/" + objectId;
                 apiRefUrl.apiSource = "field";
@@ -1617,38 +1681,48 @@ function getApiRefUrl(url) {
  */
 async function fetchExternalData(supplementsLinks) {
 
-    let handleError = function() {
-        return new Response(JSON.stringify({
-            code: 400,
-            message: "fetch-error"
-        }));
-    };
-
     // fetch external data:
     for (let i = 0; i < supplementsLinks.length; ++i) {
         let apiRefUrl = supplementsLinks[i]["apiUrl"];
-        let response = await fetch(apiRefUrl, {
-            headers:{
-                accept: 'application/json'
-            }
-        }).catch(handleError);
 
-        let result;
-        if(response.status === 200) {
-            result = await response.json();
+        try {
+            let response = await fetch(apiRefUrl, {
+                headers:{
+                    accept: 'application/json'
+                }
+            });
+
+            if(!response.ok) {
+                throw new Error("External service responded with HTTP " + response.status);
+            }
+
+            let result = await response.json();
+
             // check results:
             if(result["code"] === 400 || result["code"] === 300) {
-                supplementsLinks[i]["result"] = false;
+                throw new Error(result["message"] || "External service returned an error");
             }
-            else {
-                supplementsLinks[i]["result"] = result;
-            }
+
+            supplementsLinks[i]["result"] = result;
+            supplementsLinks[i]["error"] = false;
+
             // display fetch progress state in fetch-state-bar:
             let querySelector = "#fetch-state-" + supplementsLinks[i]["apiSource"];
             let fetchState = "Fetching data from: " + apiRefUrl;
-            document.querySelector(querySelector).innerText = fetchState;
+            let fetchStateElement = document.querySelector(querySelector);
+            if(fetchStateElement) {
+                fetchStateElement.innerText = fetchState;
+            }
         }
-        else {supplementsLinks[i]["result"] = false;}
+        catch(error) {
+            supplementsLinks[i]["result"] = false;
+            supplementsLinks[i]["error"] = error;
+            reportExternalDataFailure(
+                supplementsLinks[i],
+                "External metadata could not be loaded",
+                error
+            );
+        }
     }
 
     // render external data:
@@ -1664,39 +1738,110 @@ async function fetchExternalData(supplementsLinks) {
  */
 function renderExternalData(supplementsLinks) {
 
-    let result;
-    let values = {};
-
     // process each supplement link:
     for (let i = 0; i < supplementsLinks.length; ++i) {
-        values["refText"] = supplementsLinks[i]["refText"].trim();
+        let values = {};
+        values["refText"] = (supplementsLinks[i]["refText"] || "").trim();
         values["refAnchorId"] = supplementsLinks[i]["refAnchorId"];
         values["apiUrl"] = supplementsLinks[i]["apiUrl"];
         values["url"] = supplementsLinks[i]["url"];
  
         // check result:
-        result = supplementsLinks[i]["result"];
+        let result = supplementsLinks[i]["result"];
         values["hasResult"] = (result) ? true : false;
 
-        // parse results:
-        switch (true) {
-            case (/gazetteer/.test(supplementsLinks[i]["apiSource"])):
-                values["parsed"] = parseGazetteerData(result);
-                displayGazetteerData(values);
-                break;
-            case (/arachne/.test(supplementsLinks[i]["apiSource"])):
-                values["parsed"] = parseArachneData(result);
-                displayArachneData(values);
-                break;
-            case (/field/.test(supplementsLinks[i]["apiSource"])):
-                values["parsed"] = parseFieldData(result);
-                displayFieldData(values);
-                break;
+        if(values["hasResult"]) {
+            try {
+                values["parsed"] = parseExternalData(
+                    supplementsLinks[i]["apiSource"],
+                    result
+                );
+            }
+            catch(error) {
+                values["hasResult"] = false;
+                values["parsed"] = false;
+                reportExternalDataFailure(
+                    supplementsLinks[i],
+                    "External data could not be processed",
+                    error
+                );
+            }
+        }
+
+        try {
+            displayExternalData(supplementsLinks[i]["apiSource"], values);
+        }
+        catch(error) {
+            reportExternalDataFailure(
+                supplementsLinks[i],
+                "External data could not be displayed",
+                error
+            );
         }
     }
 
     // create index of supplement references:
     createIndexOfInternalReferences(".object-visualization", "ext-ref");
+}
+
+/**
+ * parse fetched data based on its external source
+ * @param {String} source: external data source
+ * @param {Object} result: fetched service result
+ * @returns {Object} parsed external data
+ */
+function parseExternalData(source, result) {
+
+    switch (source) {
+        case "gazetteer":
+            return parseGazetteerData(result);
+        case "arachne":
+            return parseArachneData(result);
+        case "field":
+            return parseFieldData(result);
+        default:
+            throw new Error("Unsupported external data source: " + source);
+    }
+}
+
+/**
+ * display parsed data based on its external source
+ * @param {String} source: external data source
+ * @param {Object} values: parsed data and reference values
+ * @returns {void} external data is added to the document
+ */
+function displayExternalData(source, values) {
+
+    switch (source) {
+        case "gazetteer":
+            displayGazetteerData(values);
+            break;
+        case "arachne":
+            displayArachneData(values);
+            break;
+        case "field":
+            displayFieldData(values);
+            break;
+    }
+}
+
+/**
+ * report errors related to external data requests and processing
+ * @param {Object} supplementLink: external reference values
+ * @param {String} message: diagnostic message
+ * @param {Error} error: original error
+ * @returns {void} structured warning is passed to app diagnostics
+ */
+function reportExternalDataFailure(supplementLink, message, error) {
+
+    reportDiagnostic("warning", message, {
+        code: "external-data-error",
+        service: supplementLink["apiSource"],
+        url: supplementLink["apiUrl"],
+        refText: supplementLink["refText"],
+        refAnchorId: supplementLink["refAnchorId"],
+        cause: error
+    });
 }
 
 /**
@@ -1753,7 +1898,7 @@ function parseFieldData(data) {
     if(targets) {
         // extract first image of resource
         let categoryName = targets[0].resource.category.name;
-        if(categoryName == "Photo" || categoryName == "Drawing") {
+        if(categoryName === "Photo" || categoryName === "Drawing") {
             let primaryImageId = targets[0].resource.id;
             let imageApiUrl = "https://field.idai.world/api/images/" + data.project + "/" + primaryImageId + ".jp2";
             let imageSpecs = "/x/full/!500,500/0/default.jpg"; // watch out: https://iiif.io/api/image/2.0/
@@ -1773,7 +1918,7 @@ function parseFieldData(data) {
  * @returns {void} elements containing data are added
  * to the document as externalObject (html elements)
  */
-function displayGazetteerData(values) {;
+function displayGazetteerData(values) {
 
     let externalObject = createExternalObjectElement("gazetteer");
     let objectName = externalObject.querySelector(".object-name");
@@ -1805,22 +1950,23 @@ function displayGazetteerData(values) {;
         map.classList.add("map");
 
         // create coordinates element:
-        let coordinates = document.createElement("p");
-        coordinates.classList.add("coordinates");
+        let coordinatesElement = document.createElement("p");
+        coordinatesElement.classList.add("coordinates");
 
         // assign coordinates:
         if(values["parsed"].location) {
             if(values["parsed"].location.coordinates) {
-                coords = values["parsed"].location.coordinates;
+                const coords = values["parsed"].location.coordinates;
                 map.setAttribute("longitude" , coords[0]);
                 map.setAttribute("latitude" , coords[1]);
-                coordinates.textContent = "Long: " + coords[0] + ", Lat: " + coords[1];
+                coordinatesElement.textContent = "Long: " + coords[0] + ", Lat: " + coords[1];
                 objectVisualization.appendChild(map);
-                objectVisualization.appendChild(coordinates);
+                objectVisualization.appendChild(coordinatesElement);
             }
             else {
-                console.warn("Notice for editors: " + 
-                "place has shape-coordinates only", values["parsed"])
+                reportDiagnostic("warning", "Place has shape coordinates only", {
+                    place: values["parsed"]
+                });
             }
         }
     }
@@ -1876,7 +2022,7 @@ function displayArachneData(values) {
         
         if (data.images && data.images.length) {
             url = "https://arachne.dainst.org/data/image/" + data.images[0].imageId;
-            createExternalObjectImage(url, objectVisualization);
+            createExternalObjectImage(url, objectVisualization, "iDAI.objects/Arachne");
         }
         // link to arachne for displaying 3D models:
         else if(data.type === "3D-Modelle") {
@@ -1930,7 +2076,7 @@ function displayFieldData(values) {
         let url;
         if (data.imageSource) {
             url = data.imageSource;
-            createExternalObjectImage(url, objectVisualization);
+            createExternalObjectImage(url, objectVisualization, "iDAI.field");
         }
         else {
             objectVisualization.innerText = "[No images available]";
@@ -1959,7 +2105,9 @@ function createExternalObjectElement(source) {
     // details-element for html-native open/close option
     let externalObject = document.createElement("li");
     externalObject.classList.add("external-object");
-    externalObject.classList.add(source);
+    if (source) {
+        externalObject.classList.add(source);
+    }
 
     // details-element for html-native open/close option
     let objectDetails = document.createElement("details");
@@ -2013,44 +2161,101 @@ function createExternalObjectElement(source) {
 /**
  * async: read external image data and create img-element
  * @param {String} url: image url of the source system
- * @param {HTMLElement} objectVisualization: div as child of
- * externalObjectElement
+ * @param {HTMLElement} objectVisualization: div as child of externalObjectElement
+ * @param {String} service: name of the external service
  * @returns {void} reads image data as dataUrl (base64-format) 
  * and appends it to the objectVisualization container
  */
-async function createExternalObjectImage(url, objectVisualization) {
+async function createExternalObjectImage(url, objectVisualization, service) {
 
-    let objectImage = document.createElement("img");
-    objectImage.classList.add("object-image");
-    objectImage.loading = "lazy";
-    objectImage.setAttribute("onerror", 
-        "this.onerror=null;this.parentElement.innerText='[Could not load image!]'");
-    
-    let base64data;
-    fetch(url, {method: 'GET'})
-    .then((response) => response.blob())
-    .then((blob) => {
-        let reader = new FileReader();
-        reader.readAsDataURL(blob); 
-        reader.onloadstart = function() {
+    try {
+        let fetchStateElement = objectVisualization.querySelector(".fetch-state-span");
+        if(fetchStateElement) {
             let fetchState = "[...Fetching data from: " + url + "]...";
-            objectVisualization.querySelector(".fetch-state-span").textContent = fetchState;
+            fetchStateElement.textContent = fetchState;
         }
-        reader.onloadend = function() {
-            base64data = reader.result;                
-            objectImage.src = base64data;
-            objectImage.onload = function () {
-                scaleImage(objectImage);
-            };
-            objectVisualization.insertAdjacentElement("afterbegin", objectImage);
-            objectVisualization.querySelector(".fetch-state-span").remove();
+
+        let response = await fetch(url, {method: 'GET'});
+        if(!response.ok) {
+            throw new Error("External image responded with HTTP " + response.status);
         }
+
+        let blob = await response.blob();
+        let base64data = await readBlobAsDataUrl(blob);
+        let objectImage = document.createElement("img");
+        objectImage.classList.add("object-image");
+        objectImage.loading = "lazy";
+        objectImage.onload = function () {
+            scaleImage(objectImage);
+        };
+        objectImage.onerror = function () {
+            objectImage.remove();
+            displayExternalImageFailure(objectVisualization, service);
+            reportDiagnostic("warning", "External image could not be displayed", {
+                code: "external-image-error",
+                service,
+                url
+            });
+        };
+        objectImage.src = base64data;
+        objectVisualization.insertAdjacentElement("afterbegin", objectImage);
+        fetchStateElement?.remove();
+    }
+    catch(error) {
+        displayExternalImageFailure(objectVisualization, service);
+        reportDiagnostic("warning", "External image could not be loaded", {
+            code: "external-image-error",
+            service,
+            url,
+            cause: error
+        });
+    }
+}
+
+/**
+ * read an image blob as data url
+ * @param {Blob} blob: fetched image data
+ * @returns {Promise<String>} data url
+ */
+function readBlobAsDataUrl(blob) {
+
+    return new Promise((resolve, reject) => {
+        let reader = new FileReader();
+        reader.onload = function() {
+            resolve(reader.result);
+        };
+        reader.onerror = function() {
+            reject(reader.error || new Error("Could not read external image data"));
+        };
+        reader.readAsDataURL(blob);
     });
 }
 
-/** -----------------------------------------
-*  ui and web-accessability related functions
---------------------------------------------*/
+/**
+ * display a warning when an external image is unavailable
+ * @param {HTMLElement} objectVisualization: external-object visualization
+ * @param {String} service: name of the external service
+ * @returns {void} warning is added to the external object
+ */
+function displayExternalImageFailure(objectVisualization, service) {
+
+    let fetchStateElement = objectVisualization.querySelector(".fetch-state-span");
+    let message = "The image from " + service + " could not be loaded via REST-API."
+
+    if(fetchStateElement) {
+        fetchStateElement.classList.add("warning-text", "warning-box");
+        fetchStateElement.textContent = message;
+    }
+    else {
+        let warning = document.createElement("p");
+        warning.classList.add("warning-text", "warning-box");
+        warning.textContent = message;
+        objectVisualization.append(warning);
+    }
+}
+
+// Accessibility controls
+// ----------------------
 /**
  * Accessability feature: create keyboard skip links for top-level navigation targets
  * @returns {HTMLElement} nav element with skip links
@@ -2104,7 +2309,6 @@ function titleOfResourcesAsToolTip(bibRefs) {
                 bibRef.title = bibTitle;
             }
             else {
-               // console.warn("'" + refTarget + "' is not a valid selector");
             }
         }
     });
@@ -2119,9 +2323,11 @@ function titleOfResourcesAsToolTip(bibRefs) {
 function addBackLinkAnchorToFootnote(footnote) {
 
     if(footnote.id !== undefined) {
-        let label = footnote.querySelector(".label");
-        label.id = footnote.id + "-label";
-        footnote.setAttribute("aria-labelledby", label.id);
+        if(footnote.querySelector(".label") !== null) {
+            let label = footnote.querySelector(".label");
+            label.id = footnote.id + "-label";
+            footnote.setAttribute("aria-labelledby", label.id);
+        }
 
         let hrefSelector = "[href='#" + footnote.id + "']"; 
         let textToFnAnchor = document.querySelector(".fn-ref" + hrefSelector);
@@ -2142,7 +2348,7 @@ function addBackLinkAnchorToFootnote(footnote) {
             hiddenSpan.textContent = "Jump back to position in main text";
             backAnchor.appendChild(hiddenSpan);
             
-            footnote.insertAdjacentElement("afterbegin", backAnchor);
+            footnote.insertAdjacentElement("beforeend", backAnchor);
         }
     }
 }
@@ -2151,7 +2357,9 @@ function addBackLinkAnchorToFootnote(footnote) {
  * add title-attribute to elements as accessability helper:
  * @returns {void} title attributes are appended to elements in DOM
  */
- function addTitleAttributesAsAccessablityHelper() {
+function addTitleAttributesAsAccessablityHelper() {
+
+    let titleAttr;
 
     // paragraph counters:
     let paraCounters = document.querySelectorAll(".paragraph-counter");
@@ -2225,3 +2433,25 @@ function addDaiHomeLinkToPanelNavigation() {
     document.querySelector("#panel-navigation").append(homepageLink);
 }
 
+export const webView = Object.freeze({
+    configure: configureWebView,
+    render: generateWebView
+});
+
+// switches text-content-panel (nleft side by default) and panel-wrapper (right side by default)
+function addLayoutSwitchToDocument() {
+
+    let layoutSwitchInput = document.createElement("input");
+    layoutSwitchInput.type = "checkbox";
+    layoutSwitchInput.id = "layout-switch-state";
+    layoutSwitchInput.classList.add("screenreader-only");
+    document.querySelector("#text-content-wrapper").prepend(layoutSwitchInput);
+
+    let layoutSwitchLabel = document.createElement("label");
+    layoutSwitchLabel.id = "layout-switch";
+    layoutSwitchLabel.setAttribute("for", "layout-switch-state");
+    layoutSwitchLabel.ariaLabel = "Switch text and supplementary panel positions";
+    layoutSwitchLabel.innerHTML =  "<i class='fa fa-exchange' aria-hidden='true'></i>";
+    document.querySelector("#text-content-wrapper").prepend(layoutSwitchLabel);
+ 
+}

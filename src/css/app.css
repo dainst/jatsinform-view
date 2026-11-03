@@ -1,0 +1,27 @@
+#diagnostics {
+    position:fixed;
+    right:1rem;
+    bottom:1rem;
+    padding:.5rem 1rem;
+    background:#0008;
+    color:#fff;
+    border-radius:.5rem;
+    font:14px/1.4 system-ui;
+    z-index:1000;
+}
+
+#diagnostics.diagnostics-error {
+    background: #6e3636;
+    bottom: unset;
+    right: unset;
+    width: 100%;
+    border-radius: unset;
+}
+
+.active {
+    display: block;
+}
+
+.hidden {
+    display: none;
+}
