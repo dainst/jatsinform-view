@@ -62,7 +62,7 @@ async function initializeApp() {
         document.head.appendChild(faviconLink);
 
         // create storage access with application-level warning and error handling:
-        const applicationStorage = stateHandlerModule.create({
+        const applicationStorage = stateHandlerModule.createStorage({
             onWarning: (message, details) => {
                 reportDiagnostic("warning", message, details);
             },
@@ -140,21 +140,12 @@ async function initializeApp() {
         const xmlDoc = parser.parseFromString(xmlString, "text/xml");
 
         // stop initialization when the browser reports malformed XML:
-        const parserIssue = xmlPreflightModule.getParserError(xmlDoc, xmlString);
+        const parserIssue = xmlPreflightModule.getParserIssue(xmlDoc, xmlString);
         if (parserIssue) {
-            const location = [
-                parserIssue.line ? "line " + parserIssue.line : null,
-                parserIssue.column ? "column " + parserIssue.column : null
-            ].filter(Boolean).join(", ");
-            const locationHint = location ? " (" + location + ")" : "";
-            const sourceHint = parserIssue.sourceLine
-                ? " Source: " + parserIssue.sourceLine
-                : "";
-
             throw new ApplicationError(
-                "Could not parse the requested XML document" + locationHint +
-                ": " + parserIssue.message + sourceHint,
-                parserIssue
+                "The XML document is not well-formed and could not be processed.",
+                parserIssue,
+                "source"
             );
         }
 
@@ -329,7 +320,7 @@ async function loadSelectedView(mode, journalId, articleTitle, {
             writeJsonStorage,
             checkQualityOfUrls,
             reportDiagnostic,
-            checkMaxLengthOfInnerText: contentDiagnosticsModule.markMaximumLength,
+            checkMaxLengthOfInnerText: contentDiagnosticsModule.markOverlongContent,
             URLifyString: xmlToHtmlModule.urlify,
             devMode,
             systemNotice,
@@ -423,7 +414,7 @@ async function activateSelectedView(mode, {
         document.body.classList.add("fade-in");
         pagedView.registerHandler();
         await window.PagedPolyfill.preview();
-        stateHandlerModule.restore({
+        stateHandlerModule.restoreScrollState({
             getStateProperty: getDocumentStateProperty,
             writeState: state => {
                 writeJsonStorage(STORAGE_KEYS.DOCUMENT_STATE, state);
@@ -704,7 +695,7 @@ function processXmlDocument(xmlDocument, applicationResources, {
     const xmlIssues = xmlPreflightModule.validate(
         xmlDocument,
         tagConversionMap,
-        { unsupportedImageExtensionRegex }
+        unsupportedImageExtensionRegex
     );
     if (xmlIssues.length > 0) {
         xmlIssues.forEach((issue) => reportDiagnostic(
@@ -713,13 +704,14 @@ function processXmlDocument(xmlDocument, applicationResources, {
             issue
         ));
         throw new ApplicationError(
-            "XML preflight failed: " + xmlIssues.map((issue) => issue.message).join("; "),
-            { issues: xmlIssues }
+            "The XML document contains content errors and could not be processed.",
+            { issues: xmlIssues },
+            "source"
         );
     }
 
     // normalize a detached XML document before conversion:
-    const normalizedXmlDocument = xmlToHtmlModule.normalize(xmlDocument);
+    const normalizedXmlDocument = xmlToHtmlModule.normalizeJatsSections(xmlDocument);
 
     // identify the document and reset persisted state when it changes:
     const documentId = getDocumentStateProperty("documentId");
@@ -788,7 +780,7 @@ function processXmlDocument(xmlDocument, applicationResources, {
 
     // prepare document images with the persisted default size:
     updateProgress("Process image files...");
-    imagesModule.process(document, {
+    imagesModule.prepareImages(document, {
         sizeClass: readStorageValue(STORAGE_KEYS.SIZE_CLASS, "medium"),
         onProgress: figureId => {
             updateProgress("Image preloading... " + figureId);
@@ -826,15 +818,16 @@ function processXmlDocument(xmlDocument, applicationResources, {
 
 /**
  * Marks external links that do not match the configured persistent-URL rules.
- *
+ * UrlRegex and specificUseRegex are defined in app-config.js.
  * @returns {void}
  */
 function checkQualityOfUrls() {
-    contentDiagnosticsModule.markNonPersistentUrls(document, {
-        enabled: checkUrlPersistence,
-        persistentUrlRegex: urlRegex,
-        excludedSpecificUseRegex: specificUseRegex
-    });
+    if (!checkUrlPersistence) return;
+    contentDiagnosticsModule.markNonPersistentUrls(
+        document,
+        urlRegex,
+        specificUseRegex
+    );
 }
 
 /* ---------------------
@@ -878,9 +871,10 @@ async function downloadHTMLDocument(documentContext, fallbackStyles) {
  * Application errors
  * --------------------- */
 class ApplicationError extends Error {
-    constructor(message, details = {}) {
+    constructor(message, details = {}, category = "application") {
         super(message);
         this.name = "ApplicationError";
+        this.category = category;
         this.details = details;
     }
 }
@@ -906,7 +900,11 @@ function showApplicationError(error) {
         return;
     }
 
-    console.error("Application initialization failed:", applicationError);
+    // label application errors:
+    const label = applicationError.category === "source"
+        ? "XML source error:"
+        : "Application initialization failed:";
+    console.error(label, applicationError);
 }
 
 /**

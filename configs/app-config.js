@@ -76,7 +76,7 @@ const devMode = false;
 const defaultJournal = "AA";
 
 // check urls according to this regex specs:
-const urlRegex = /doi|handle|urn|ark:|orcid|ror|dainst|idai.world|wikipedia/g;
+const urlRegex = /jatsinform|doi|handle|urn|ark:|orcid|ror|dainst|idai.world|wikipedia|creativecommons/g;
 const specificUseRegex = "zenon|extrafeatures|supplements";
 
 // favicon:

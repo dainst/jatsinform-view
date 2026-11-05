@@ -1,18 +1,28 @@
-// JATS XML-to-HTML conversion
-// ---------------------------
-// Public APIs: normalize, convert, createRandomString and urlify
+/* ---------------------
+ * XML normalization
+ * --------------------- */
 
-export function normalize(xmlDoc) {
-    const normalizedDocument = xmlDoc.cloneNode(true);
+/**
+ * Clones an XML document and renames JATS `sec` elements to `section`.
+ * The original XML document remains unchanged.
+ *
+ * @param {XMLDocument} xmlDocument source XML document
+ * @returns {XMLDocument} cloned document with normalized section elements
+ */
+export function normalizeJatsSections(xmlDocument) {
+    // clone the source and collect JATS section elements:
+    const normalizedDocument = xmlDocument.cloneNode(true);
     const sectionElements = Array.from(
         normalizedDocument.getElementsByTagNameNS("*", "sec")
     );
 
+    // process each section element:
     sectionElements.forEach((sectionElement) => {
         const qualifiedName = sectionElement.prefix
             ? sectionElement.prefix + ":section"
             : "section";
 
+        // rename the existing node when the XML DOM provides renameNode():
         if (typeof normalizedDocument.renameNode === "function") {
             normalizedDocument.renameNode(
                 sectionElement,
@@ -22,6 +32,7 @@ export function normalize(xmlDoc) {
             return;
         }
 
+        // replace sections manually while preserving attributes and children:
         const replacement = normalizedDocument.createElementNS(
             sectionElement.namespaceURI,
             qualifiedName
@@ -41,6 +52,10 @@ export function normalize(xmlDoc) {
 
     return normalizedDocument;
 }
+
+/* ---------------------
+ * Element conversion
+ * --------------------- */
 
 export function convert(xmlDoc, tagConversionMap, {
     imageBasePath = "",
@@ -233,6 +248,10 @@ function convertElementsByTagConversionMap(xmlBody, tagConversionMap, {
     }
 }
 
+/* ---------------------
+ * Generated identifiers
+ * --------------------- */
+
 function generateGenericElementIdsIfMissing(textContentElements) {
 
     let genId;
@@ -270,6 +289,10 @@ export function createRandomString(length) {
     return result;
 }
 
+/* ---------------------
+ * Internal references
+ * --------------------- */
+
 /**
  * Returns the target panel for an internal-reference class.
  *
@@ -295,6 +318,10 @@ function defineTargetSectionByClassname(className) {
     }
     return(panelName);
 }
+
+/* ---------------------
+ * Heading hierarchy
+ * --------------------- */
 
 /**
  * Replaces XML title elements with headings based on section depth.
@@ -368,6 +395,10 @@ function defineHeadlinePropertiesByHierarchyLevel(level) {
     }
     return headlineProperties;
 }
+
+/* ---------------------
+ * Text links
+ * --------------------- */
 
 /**
  * Converts URL-like substrings in plain text into external anchor markup.

@@ -42,22 +42,93 @@ export function showProgress(stage, { readyStage = "Ready" } = {}) {
 /**
  * Presents a fatal application error and logs its structured details.
  *
- * @param {Error & {details?: Object}} error
+ * @param {Error & {category?: string, details?: Object}} error
  * @returns {void}
  */
 export function showError(error) {
     // retain structured error details in the browser console:
-    console.error("Application initialization failed:", error, error.details || {});
+    const isSourceError = error.category === "source";
+    const consoleLabel = isSourceError
+        ? "XML source error:"
+        : "Application initialization failed:";
+    console.error(consoleLabel, error, error.details || {});
 
     // replace pending progress with an assertive error message:
     clearDiagnosticsTimer();
     attachDiagnosticsElement();
 
-    diagnosticsElement.className = "diagnostics-error";
     diagnosticsElement.setAttribute("role", "alert");
     diagnosticsElement.setAttribute("aria-live", "assertive");
-    diagnosticsElement.textContent = "Application initialization failed: " + error.message;
+    if (isSourceError) {
+        showSourceError(error);
+    } else {
+        diagnosticsElement.className = "diagnostics-error";
+        diagnosticsElement.textContent = "Application initialization failed: " + error.message;
+    }
     diagnosticsElement.hidden = false;
+}
+
+/**
+ * Presents an XML source error as structured, actionable information.
+ *
+ * @param {Error & {details?: Object}} error source validation error
+ * @returns {void}
+ */
+function showSourceError(error) {
+    // create the source-error heading and summary:
+    const details = error.details || {};
+    const heading = document.createElement("strong");
+    heading.textContent = "XML source error";
+    const summary = document.createElement("div");
+    summary.textContent = error.message;
+
+    // initialize the structured source-error presentation:
+    diagnosticsElement.className = "diagnostics-error diagnostics-source-error";
+    diagnosticsElement.replaceChildren(heading, summary);
+
+    // append available parser location and source details:
+    const location = [
+        details.line ? "line " + details.line : null,
+        details.column ? "column " + details.column : null
+    ].filter(Boolean).join(", ");
+    
+    if (location) {
+        appendSourceDetail("Location", location);
+    }
+    if (details.message) {
+        appendSourceDetail("Problem", details.message);
+    }
+    if (details.sourceLine) {
+        appendSourceDetail("Source", details.sourceLine, "diagnostics-source-line");
+    }
+
+    // append semantic XML validation issues:
+    if (Array.isArray(details.issues)) {
+        details.issues.forEach((issue) => {
+            appendSourceDetail("Problem", issue.message);
+        });
+    }
+
+    // provide the corrective action for the source document:
+    const action = document.createElement("div");
+    action.textContent = "Correct the XML source and reload the document.";
+    action.className = "diagnostics-action";
+    diagnosticsElement.appendChild(action);
+}
+
+/**
+ * Appends one labeled XML source detail to the diagnostics element.
+ *
+ * @param {string} label detail label
+ * @param {string} value detail value
+ * @param {string} [className=""] optional detail class
+ * @returns {void}
+ */
+function appendSourceDetail(label, value, className = "") {
+    const detail = document.createElement("div");
+    detail.textContent = label + ": " + value;
+    if (className) detail.className = className;
+    diagnosticsElement.appendChild(detail);
 }
 
 /**

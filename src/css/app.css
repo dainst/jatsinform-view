@@ -18,6 +18,22 @@
     border-radius: unset;
 }
 
+#diagnostics.diagnostics-source-error {
+    background: #66521f;
+}
+
+#diagnostics.diagnostics-source-error > * + * {
+    margin-top: .35rem;
+}
+
+#diagnostics .diagnostics-source-line {
+    font-family: ui-monospace, monospace;
+}
+
+#diagnostics .diagnostics-action {
+    font-weight: 600;
+}
+
 .active {
     display: block;
 }
