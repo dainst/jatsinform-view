@@ -67,7 +67,7 @@ const scriptLibrary = {
 const xmlFolder = "xml-documents";
 
 // load editor-xml from localStorage
-const xmlFromEditor = true;
+const xmlFromEditor = false;
 
 // devMode (= additional browser logs)
 const devMode = false;
