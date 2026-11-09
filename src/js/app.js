@@ -321,7 +321,7 @@ async function loadSelectedView(mode, journalId, articleTitle, {
             checkQualityOfUrls,
             reportDiagnostic,
             checkMaxLengthOfInnerText: contentDiagnosticsModule.markOverlongContent,
-            URLifyString: xmlToHtmlModule.urlify,
+            linkifyUrls: xmlToHtmlModule.linkifyUrls,
             devMode,
             systemNotice,
             defaultTitles,
@@ -365,7 +365,7 @@ async function loadSelectedView(mode, journalId, articleTitle, {
             getDocumentStateProperty,
             checkQualityOfUrls,
             reportDiagnostic,
-            URLifyString: xmlToHtmlModule.urlify,
+            linkifyUrls: xmlToHtmlModule.linkifyUrls,
             generateRandomString: xmlToHtmlModule.createRandomString,
             systemNotice,
             defaultTitles,
@@ -750,7 +750,7 @@ function processXmlDocument(xmlDocument, applicationResources, {
     const serializer = new XMLSerializer();
     const xmlFront = requireElement(normalizedXmlDocument, "front", "XML");
     const xmlFrontString = serializer.serializeToString(xmlFront);
-    const jsonLd = jsonLdModule.mapJATSFrontToScholarlyArticle(xmlFrontString,{});
+    const jsonLd = jsonLdModule.createScholarlyArticleJsonLd(xmlFront);
     const documentContext = {
         articleId,
         journalConfig,
@@ -762,7 +762,7 @@ function processXmlDocument(xmlDocument, applicationResources, {
 
     // convert the normalized XML and install the generated HTML:
     updateProgress("Convert XML to HTML...");
-    const htmlWrapper = xmlToHtmlModule.convert(
+    const htmlWrapper = xmlToHtmlModule.convertJatsToHtml(
         normalizedXmlDocument,
         tagConversionMap,
         {
@@ -844,7 +844,7 @@ function checkQualityOfUrls() {
  */
 async function downloadHTMLDocument(documentContext, fallbackStyles) {
     // confirm the export before starting image conversion and packaging:
-    if (!window.confirm("Download this document as an HTML file?")) {
+    if (!window.confirm("Download this document as a single HTML file?")) {
         return;
     }
 

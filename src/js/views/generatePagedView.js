@@ -2,7 +2,7 @@
 // ---------------------
 // Public API: pagedView.registerHandler() and pagedView.applyFigureLayout()
 
-import { convertToDataUrl } from "../exports/imageEncoding.js";
+import { convertImageToDataUrl } from "../exports/imageEncoding.js";
 
 // Dependencies supplied by the application entry point.
 let applicationContext;
@@ -15,7 +15,7 @@ let writeJsonStorage;
 let checkQualityOfUrls;
 let reportDiagnostic;
 let checkMaxLengthOfInnerText;
-let URLifyString;
+let linkifyUrls;
 let devMode;
 let systemNotice;
 let defaultTitles;
@@ -45,7 +45,7 @@ function configurePagedView(dependencies) {
         checkQualityOfUrls,
         reportDiagnostic,
         checkMaxLengthOfInnerText,
-        URLifyString,
+        linkifyUrls,
         devMode,
         systemNotice,
         defaultTitles,
@@ -224,7 +224,7 @@ function controlPagedJsHandler() {
                     let img = element.firstElementChild;
                     // compress images based on imgQuality (see index.html):
                     if(img !== null && !/logo-img/.test(img.className)) {
-                        convertToDataUrl(img, "image/jpeg",imgQuality,
+                        convertImageToDataUrl(img, "image/jpeg",imgQuality,
                             (error, source) => {
                                 reportDiagnostic(
                                     "warning",
@@ -1323,11 +1323,11 @@ function addReferencesToReferenceList(referenceList, references) {
                 };
             }
             // extract reference text from ext-ref-element
-            mixedCitation.innerHTML = URLifyString(mixedCitation.textContent);
+            mixedCitation.replaceChildren(linkifyUrls(mixedCitation.textContent));
             mixedCitation.append(extRefLink);
         }
         else if(mixedCitation !== null) {
-            mixedCitation.innerHTML = URLifyString(mixedCitation.innerText);
+            mixedCitation.replaceChildren(linkifyUrls(mixedCitation.innerText));
         }
         else {
             mixedCitation = document.createElement("p");
@@ -1921,13 +1921,10 @@ function createTextContentMap(parsedContent, previousMap) {
             let figRefs = [];
             if (references) {
                 for (let index = 0; index < references.length; index++) {
-                    let specificUse = references[index].getAttribute("data-specific-use");
                     // get figure ids from href/hash:
                     let reference = references[index].hash.slice(1); // e.g. "f-1"
                     // avoid duplicates:
-                    if (!allFigRefs.includes(reference)
-                    // no fig-refs excluded from typeset
-                    && specificUse !== "ref-only") {  
+                    if (!allFigRefs.includes(reference)) {  
                         figRefs.push(reference);
                         allFigRefs.push(reference);
                     }

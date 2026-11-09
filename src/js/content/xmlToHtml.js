@@ -57,23 +57,72 @@ export function normalizeJatsSections(xmlDocument) {
  * Element conversion
  * --------------------- */
 
-export function convert(xmlDoc, tagConversionMap, {
-    imageBasePath = "",
-    onDiagnostic = null} = {}) {
+/**
+ * Converts a normalized JATS XML document into an HTML wrapper.
+ * The supplied XML document is modified during conversion.
+ *
+ * @param {XMLDocument} xmlDocument normalized JATS XML document
+ * @param {Object} tagConversionMap XML-to-HTML element configuration
+ * @param {Object} [options]
+ * @param {string} [options.imageBasePath=""] base path for referenced images
+ * @param {Function|null} [options.onDiagnostic=null] conversion diagnostic callback
+ * @returns {HTMLDivElement} converted article wrapper
+ */
+export function convertJatsToHtml(xmlDocument, tagConversionMap, 
+    {imageBasePath = "", onDiagnostic = null} = {}) {
 
-    const xmlArticle = xmlDoc.getElementsByTagName("article")[0];
+    const xmlArticle = xmlDocument.getElementsByTagName("article")[0];
 
-    // remove empty elements except of (inline-)graphic:
-    removeEmptyElements(xmlArticle, onDiagnostic);
-
-    // convert xml elements to html elements:
-    convertElementsByTagConversionMap(xmlArticle, tagConversionMap, {
-        imageBasePath,
-        onDiagnostic
+    // remove empty elements before conversion:
+    const removedElements = removeEmptyElements(xmlArticle);
+    removedElements.forEach((element) => {
+        onDiagnostic?.("warning", "Empty XML element was removed", {
+            element
+        });
     });
 
-    // enhance code wit <pre> and language-class:
-    const codeItems = xmlDoc.querySelectorAll("code:not(.language-xml)");
+    // replace configured XML elements with HTML elements:
+    const elementsNotFound = convertElementsByTagConversionMap(
+        xmlArticle,
+        tagConversionMap,
+        imageBasePath
+    );
+    if (elementsNotFound.length > 0) {
+        onDiagnostic?.(
+            "notice",
+            "Configured XML elements were not present",
+            { elements: elementsNotFound }
+        );
+    }
+
+    // apply content-specific HTML transformations:
+    formatCodeBlocks(xmlArticle);
+    applyCustomMetaClasses(xmlArticle);
+
+    // add identifiers and heading hierarchy:
+    const textContentElements = xmlArticle.querySelectorAll(
+        "p, ul, ol, li, table, pre, code, .title"
+    );
+    assignMissingElementIds(textContentElements);
+    convertTitlesToHeadings(xmlArticle);
+
+    // create the application HTML wrapper:
+    const htmlWrapper = document.createElement("div");
+    htmlWrapper.id = "html-wrapper";
+    htmlWrapper.classList.add("html-wrapper");
+    htmlWrapper.innerHTML = xmlArticle.innerHTML;
+
+    return htmlWrapper;
+}
+
+/**
+ * Wraps converted code elements in preformatted blocks.
+ *
+ * @param {HTMLElement} container converted article content
+ * @returns {void}
+ */
+function formatCodeBlocks(container) {
+    const codeItems = container.querySelectorAll("code:not(.language-xml)");
     for (let i = 0; i < codeItems.length; i++) {
         const language = codeItems[i].getAttribute("language");
         const pre = document.createElement("pre");
@@ -83,9 +132,16 @@ export function convert(xmlDoc, tagConversionMap, {
         pre.appendChild(code)
         codeItems[i].replaceWith(pre);
     }
+}
 
-    // set metaName as element-attribute of custom-meta:
-    const customMetaElements = xmlDoc.querySelectorAll(".custom-meta");
+/**
+ * Applies each custom metadata name as a class on its container.
+ *
+ * @param {HTMLElement} container converted article content
+ * @returns {void}
+ */
+function applyCustomMetaClasses(container) {
+    const customMetaElements = container.querySelectorAll(".custom-meta");
     for (let i = 0; i < customMetaElements.length; i++) {
         const metaName = customMetaElements[i].querySelector(".meta-name");
         const metaClass = metaName?.innerText.trim();
@@ -93,199 +149,242 @@ export function convert(xmlDoc, tagConversionMap, {
             customMetaElements[i].classList.add(metaClass);
         }
     }
+}
 
-    // create generic ids for text-elements:
-    const textContentElements = xmlArticle.querySelectorAll(
-        "p, ul, ol, li, table, pre, code, .title"
+/**
+ * Removes empty elements except graphic source elements.
+ *
+ * @param {Element} container XML article containing elements to inspect
+ * @returns {Array<Element>} removed XML elements
+ */
+function removeEmptyElements(container) {
+    const emptyElements = Array.from(
+        container.querySelectorAll("*:empty:not(graphic,inline-graphic)")
     );
-    generateGenericElementIdsIfMissing(textContentElements);
+    emptyElements.forEach((element) => {
+        element.remove();
+    });
 
-    // classify title-level by section
-    createHeadlinesBySectionHierarchy(xmlArticle, "text-body");
-
-    // wrap xmlArticle content into htmlWrapper
-    const htmlWrapper = document.createElement("div");
-    htmlWrapper.id = "html-wrapper";
-    htmlWrapper.classList.add("html-wrapper");
-    htmlWrapper.innerHTML = xmlArticle.innerHTML;
-    return(htmlWrapper);
+    return emptyElements;
 }
 
-function removeEmptyElements(container, onDiagnostic) {
-
-    // get empty elements:
-    const emptyTags = container.querySelectorAll("*:empty:not(graphic,inline-graphic)");
-
-    // remove empty elements:
-    for (let i = 0; i < emptyTags.length; i++) {
-        onDiagnostic?.("warning", "Empty XML element was removed", {
-            element: emptyTags[i]
-        });
-        emptyTags[i].remove();
-    }
-}
-
-function convertElementsByTagConversionMap(xmlBody, tagConversionMap, {
-    imageBasePath,
-    onDiagnostic}) {
-
-    // convert selectors as defined in tagConversionMap:
+/**
+ * Replaces XML elements with HTML elements defined by the conversion map.
+ * Returns configured selectors not present in the document.
+ *
+ * @param {Element} container XML article containing elements to convert
+ * @param {Object<string, Object>} tagConversionMap conversion definitions keyed by selector
+ * @param {string} imageBasePath base path for referenced images
+ * @returns {Array<string>} configured selectors not present in the document
+ */
+function convertElementsByTagConversionMap(container, tagConversionMap, imageBasePath) {
+    // process every selector defined by the conversion map:
     const elementsNotFound = [];
-    for (const selector in tagConversionMap) {
-        const selectorForQuery = selector.replace(/:/g, "\\:");
-        const mapTagName = tagConversionMap[selector]["tagName"];
-        const mapClassName = tagConversionMap[selector]["className"];
-        const metaTitle = tagConversionMap[selector]["metaTitle"];
+    for (const [selector, definition] of Object.entries(tagConversionMap)) {
 
-        // process each selector
-        if (xmlBody.querySelectorAll(selectorForQuery).length !== 0) {
-            const xmlElements = xmlBody.querySelectorAll(selectorForQuery);
+        // escape namespace colons before querying the XML document:
+        const selectorForQuery = selector.replace(/:/g, "\\:"); // e.g. "ali:license_ref"
+        const xmlElements = container.querySelectorAll(selectorForQuery);
 
-            for (let i = 0; i < xmlElements.length; ++i) {
-                const newElement = document.createElement(mapTagName);
-                
-                // transfer ids and classnames of xml-elements:
-                if (xmlElements[i].className) {newElement.classList.add(xmlElements[i].className);}
-                if (xmlElements[i].id) {newElement.id = xmlElements[i].id;}
-
-                // transfer metaTitles as data-attribute:
-                if (metaTitle) {newElement.setAttribute("data-meta-title", metaTitle)};
-        
-                // add new defined classnames in tagConversionMap
-                if (mapClassName) {newElement.classList.add(mapClassName);}
-
-                // set ref-links:
-                if (tagConversionMap[selector].hasOwnProperty("refAttribute")) {
-                    let refAttribute = tagConversionMap[selector]["refAttribute"];
-                    let refValue = xmlElements[i].getAttribute(refAttribute);
-
-                    // image source-links:
-                    if (selector === "graphic" || selector === "inline-graphic") {
-                        // exclude placeholder-graphics:
-                        if(refValue.startsWith('data:')) {
-                            newElement.src = (refValue) ? refValue : "";
-                        } 
-                        else {
-                            newElement.src = (refValue) ? imageBasePath + "/" + refValue : "";
-                        }
-                    }
-                    // get license-url:
-                    else if(selector === "license") {
-                        let licenseUrl = document.createElement("a");
-                        licenseUrl.classList.add("license-url");
-                        licenseUrl.href = (refValue) ? (refValue).trim() : "";
-                        licenseUrl.textContent = (refValue) ? (refValue).trim() : "";
-                        xmlElements[i].appendChild(licenseUrl);
-                    }
-                    // external url-links:
-                    else if (selector === "ext-link") {
-                        // handle over specific-use attributes of ext-link
-                        if(xmlElements[i].getAttribute("specific-use")) {
-                            let specificUseValue = xmlElements[i].getAttribute("specific-use");
-                            newElement.setAttribute("data-specific-use", specificUseValue);
-                            // ext-link as external:
-                            if(specificUseValue === "weblink")  {
-                                newElement.target = "_blank";
-                                newElement.rel="noopener noreferrer";
-                            }
-                        } else {
-                            newElement.target = "_blank";
-                            newElement.rel="noopener noreferrer";
-                        }
-                        // add href:
-                        newElement.href = (refValue) ? (refValue).trim() : "";
-
-                    // internal id-links:
-                    } else {
-                        newElement.href = (refValue) ? "#" + (refValue).trim() : "";
-                        newElement.id = "xref-" + createRandomString(4) + "_" + refValue;
-                        newElement.setAttribute("data-target-section", defineTargetSectionByClassname(mapClassName));
-                    }
-                }
-                // set defined attribute to newElement
-                if (tagConversionMap[selector].hasOwnProperty("setAttribute")) {
-                    let attributeKey = tagConversionMap[selector]["setAttribute"];
-                    let attributeValue = xmlElements[i].getAttribute(attributeKey);
-
-                    // transform xml:lang-attribute to lang (html)
-                    attributeKey = (attributeKey === "xml:lang") ? "lang" : attributeKey;
-                    if(selector === "contrib-group" && attributeValue === null) {
-                        // check firstChild of contrib-group:
-                        let firstChild = xmlElements[i].firstElementChild;
-                        if(firstChild && firstChild.getAttribute("contrib-type") === "author") {
-                            attributeValue = "article-contributors";
-                        }
-                    }
-                    // add translate="no" to defined elements:
-                    if(attributeKey === "translate") {attributeValue = "no";}
-               
-                    // set attribute to new element:
-                    if(attributeKey !== null && attributeValue !== null) {
-                        newElement.setAttribute(attributeKey, attributeValue);
-                    }
-                }
-    
-                if(selector === "xref[ref-type='fig']"
-                && xmlElements[i].getAttribute("specific-use")) {
-                    let specificUseValue = xmlElements[i].getAttribute("specific-use");
-                    newElement.setAttribute("data-specific-use", specificUseValue);
-                }
-                // transfer content
-                newElement.innerHTML = xmlElements[i].innerHTML;
-
-                // replace xml-element:
-                xmlElements[i].replaceWith(newElement);
-            }
-        }
-        else {
+        // collect matching XML elements or retain the missing selector:
+        if (xmlElements.length === 0) {
             elementsNotFound.push(selector);
+            continue;
+        }
+
+        // read the conversion properties applied to each matching XML element
+        const mappedTagName = definition.tagName;
+        const mappedClassName = definition.className;
+        const metaTitle = definition.metaTitle;
+        const refAttribute = definition.refAttribute;
+        const mappedAttribute = definition.setAttribute;
+
+        for (const xmlElement of xmlElements) {
+            // create the configured HTML element:
+            const newElement = document.createElement(mappedTagName);
+
+            // transfer source identity and mapped metadata:
+            if (xmlElement.className) {
+                newElement.classList.add(xmlElement.className);
+            }
+            if (xmlElement.id) {
+                newElement.id = xmlElement.id;
+            }
+            if (metaTitle) {
+                newElement.setAttribute("data-meta-title", metaTitle);
+            }
+            if (mappedClassName) {
+                newElement.classList.add(mappedClassName);
+            }
+
+            // map configured reference attributes by reference purpose:
+            if (refAttribute !== undefined) {
+                const refValue = xmlElement.getAttribute(refAttribute)?.trim() || "";
+                switch (selector) {
+                    case "graphic":
+                    case "inline-graphic":
+                        setImageSource(newElement, refValue, imageBasePath);
+                        break;
+                    case "license":
+                        appendLicenseUrl(xmlElement, refValue);
+                        break;
+                    case "ext-link":
+                        configureExternalLink(xmlElement, newElement, refValue);
+                        break;
+                    default:
+                        configureInternalReference(
+                            newElement,
+                            refValue,
+                            mappedClassName
+                        );
+                        break;
+                }
+            }
+
+            // transfer configured XML attributes:
+            if (mappedAttribute !== undefined) {
+                let attributeKey = mappedAttribute;
+                let attributeValue = xmlElement.getAttribute(attributeKey);
+
+                if (attributeKey === "xml:lang") {
+                    attributeKey = "lang";
+                }
+                if (selector === "contrib-group" && attributeValue === null) {
+                    const firstChild = xmlElement.firstElementChild;
+                    if (firstChild?.getAttribute("contrib-type") === "author") {
+                        attributeValue = "article-contributors";
+                    }
+                }
+                if (attributeKey === "translate") {
+                    attributeValue = "no";
+                }
+                if (attributeKey !== null && attributeValue !== null) {
+                    newElement.setAttribute(attributeKey, attributeValue);
+                }
+            }
+
+            // transfer content and replace the XML element:
+            newElement.innerHTML = xmlElement.innerHTML;
+            xmlElement.replaceWith(newElement);
         }
     }
-    if(elementsNotFound.length) {
-        onDiagnostic?.("notice", "Configured XML elements were not present", {
-            elements: elementsNotFound
-        });
+
+    return elementsNotFound;
+}
+
+/**
+ * Resolves a mapped image source from an embedded or file-based reference.
+ *
+ * @param {HTMLImageElement} image converted image element
+ * @param {string} refValue image source reference
+ * @param {string} imageBasePath base path for file-based images
+ * @returns {void}
+ */
+function setImageSource(image, refValue, imageBasePath) {
+    if (refValue.startsWith("data:")) {
+        image.src = refValue;
+    } else {
+        image.src = refValue ? imageBasePath + "/" + refValue : "";
     }
 }
 
-/* ---------------------
- * Generated identifiers
+/**
+ * Appends a visible licence URL to the source licence element.
+ *
+ * @param {Element} xmlElement source licence element
+ * @param {string} refValue licence URL
+ * @returns {void}
+ */
+function appendLicenseUrl(xmlElement, refValue) {
+    const licenseUrl = document.createElement("a");
+    licenseUrl.classList.add("license-url");
+    licenseUrl.href = refValue;
+    licenseUrl.textContent = refValue;
+    xmlElement.appendChild(licenseUrl);
+}
+
+/**
+ * Applies the URL and browsing behavior of an external link.
+ *
+ * @param {Element} xmlElement source external-link element
+ * @param {HTMLAnchorElement} link converted link element
+ * @param {string} refValue external URL
+ * @returns {void}
+ */
+function configureExternalLink(xmlElement, link, refValue) {
+    const specificUse = xmlElement.getAttribute("specific-use");
+    if (specificUse) {
+        link.setAttribute("data-specific-use", specificUse);
+    }
+    if (!specificUse || specificUse === "weblink") {
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+    }
+    link.href = refValue;
+}
+
+/**
+ * Applies the target and generated identity of an internal reference.
+ *
+ * @param {HTMLAnchorElement} link converted reference element
+ * @param {string} refValue referenced element identifier
+ * @param {string|false} mappedClassName configured reference class
+ * @returns {void}
+ */
+function configureInternalReference(link, refValue, mappedClassName) {
+    link.href = refValue ? "#" + refValue : "";
+    link.id = "xref-" + createRandomString(4) + "_" + refValue;
+    link.setAttribute(
+        "data-target-section",
+        getTargetSectionForReference(mappedClassName)
+    );
+}
+
+/* ----------------------
+ * Generate identifiers
  * --------------------- */
 
-function generateGenericElementIdsIfMissing(textContentElements) {
+/**
+ * Assigns deterministic IDs to text elements that have no source ID.
+ *
+ * @param {NodeListOf<Element>} textContentElements text elements to identify
+ * @returns {void}
+ */
+function assignMissingElementIds(textContentElements) {
+    for (const [index, element] of textContentElements.entries()) {
+        // preserve identifiers supplied by the XML source:
+        if (element.id) continue;
 
-    let genId;
-    for (let i = 0; i < textContentElements.length; i++) {
-        if(!textContentElements[i].id) {
-            let tagName = textContentElements[i].tagName;
-            // use tagName abbreviation and loop index to genId
-            if(/title/.test(textContentElements[i].className)) {
-                genId = "genId-t" + i;
-            }
-            else if(tagName !== undefined) {
-                genId = "genId-" + tagName.substring(0, 2) + i;
-            } 
-            else {
-                genId = "genId-" + i;
-            }
-            let parent = textContentElements[i].parentElement;
-            if(parent !== undefined) {
-                if(/footnote/.test(parent.className)) {
-                    genId = "fn-genId" + i;
-                }
-            }
-            textContentElements[i].id = genId;
+        // derive the generated ID from element type and document position:
+        const tagPrefix = element.classList.contains("title")
+            ? "t"
+            : element.tagName.substring(0, 2);
+        let generatedId = "genId-" + tagPrefix + index;
+
+        // use the established footnote prefix inside footnote containers:
+        if (element.parentElement?.classList.contains("footnote")) {
+            generatedId = "fn-genId" + index;
         }
+        element.id = generatedId;
     }
 }
 
+/**
+ * Creates a random alphanumeric string for generated element identifiers.
+ *
+ * @param {number} length number of characters to generate
+ * @returns {string} random alphanumeric string
+ */
 export function createRandomString(length) {
-    let result = '';
-    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    const charactersLength = characters.length;
-    for ( let i = 0; i < length; i++ ) {
-        result += characters.charAt(Math.floor(Math.random() * charactersLength));
+    const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" + 
+    "abcdefghijklmnopqrstuvwxyz0123456789";
+
+    let result = "";
+    for (let i = 0; i < length; i++) {
+        const characterIndex = Math.floor(Math.random() * characters.length);
+        result += characters.charAt(characterIndex);
     }
+
     return result;
 }
 
@@ -294,29 +393,23 @@ export function createRandomString(length) {
  * --------------------- */
 
 /**
- * Returns the target panel for an internal-reference class.
+ * Resolves the target section for an internal-reference class.
  *
- * @param {string} className
- * @returns {string}
+ * @param {string|false} className configured reference class
+ * @returns {string} target application section
  */
-function defineTargetSectionByClassname(className) {
+function getTargetSectionForReference(className) {
 
-    let panelName;
-    switch (true) {
-        case (/fig-ref/.test(className)):
-            panelName = "figures";
-            break;
-        case (/fn-ref/.test(className)):
-            panelName = "notes";
-            break;
-        case (/bib-ref/.test(className)):
-            panelName = "references";
-            break;
-        default:
-            panelName = "contents";
-            break;
-    }
-    return(panelName);
+    // map classes to target:
+    const targetSectionByClass = {
+        "fig-ref": "figures",
+        "fn-ref": "notes",
+        "bib-ref": "references"
+    };
+    // get target section:
+    const targetSection = targetSectionByClass[className] || "contents";
+
+    return targetSection;
 }
 
 /* ---------------------
@@ -324,76 +417,62 @@ function defineTargetSectionByClassname(className) {
  * --------------------- */
 
 /**
- * Replaces XML title elements with headings based on section depth.
+ * Replaces converted title elements with headings based on section depth.
  *
- * @param {HTMLElement} content document-fragment made from original DOM
- * @param {string} parentClass CSS class of the parent element
- * @returns {void} headline elements are created within the DOM
+ * @param {Element} content converted article content
+ * @returns {void}
  */
-function createHeadlinesBySectionHierarchy(content, parentClass) {
+function convertTitlesToHeadings(content) {
+    const textBody = content.querySelector(".text-body");
+    const titles = textBody.querySelectorAll(".title");
 
-    // select parent:
-    const textBody = content.getElementsByClassName(parentClass)[0];
-
-    // check position in section hierarchy
-    const headlines = textBody.querySelectorAll(".title");
-    for (let i = 0; i < headlines.length; i++) {
-        let parent = headlines[i].parentElement;
-        let level = 1; // start with 1 (= article-title)
-        do {
-            parent = parent.parentElement;
-            level++; // at least 2 for normal headlines (loop always run once)
-        }
-        while (parent !== null && parent.className !== parentClass);
-
-        // add level as attribute to sections:
-        if(/section/.test(headlines[i].parentElement.tagName)) {
-            headlines[i].parentElement.setAttribute("level", level);
+    for (const title of titles) {
+        // derive heading level from ancestor sections:
+        let level = 1;
+        let ancestor = title.parentElement;
+        while (ancestor && ancestor !== textBody) {
+            if (ancestor.localName === "section") {
+                level++;
+            }
+            ancestor = ancestor.parentElement;
         }
 
-        // create html headline elements based on headlineProperties:
-        const headlineProperties = defineHeadlinePropertiesByHierarchyLevel(level);
-        const headline = document.createElement(headlineProperties.elementName);
-        headline.id = headlines[i].id;
-        headline.classList.add(headlineProperties.className);
-        headline.setAttribute("level", level);
-        headline.classList.add("title");
-        headline.innerHTML = headlines[i].innerHTML;
-        headlines[i].replaceWith(headline);
+        // retain the level on the containing section:
+        if (title.parentElement?.localName === "section") {
+            title.parentElement.setAttribute("level", level);
+        }
+
+        // resolve and create the corresponding HTML heading:
+        const headingProperties = getHeadingProperties(level);
+        const heading = document.createElement(headingProperties.elementName);
+        heading.id = title.id;
+        heading.classList.add(headingProperties.className, "title");
+        heading.setAttribute("level", level);
+        heading.innerHTML = title.innerHTML;
+        title.replaceWith(heading);
     }
 }
 
 /**
  * Returns heading element and class names for a section depth.
  *
- * @param {number} level
- * @returns {{elementName: string, className: string}}
+ * @param {number} level section heading level
+ * @returns {{elementName: string, className: string}} heading properties
  */
-function defineHeadlinePropertiesByHierarchyLevel(level) {
+function getHeadingProperties(level) {
+    const headingPropertiesByLevel = {
+        1: {elementName: "h1", className: "article-title"},
+        2: {elementName: "h2", className: "main-section-title"},
+        3: {elementName: "h3", className: "section-title"}
+    };
+    const deeperHeadingProperties = {
+        elementName: "h4",
+        className: "subsection-title"
+    };
+    const headingProperties =
+        headingPropertiesByLevel[level] || deeperHeadingProperties;
 
-    let headlineProperties = {};
-    switch (true) {
-        case (level === 1):
-            headlineProperties.elementName = "h1";
-            headlineProperties.className = "article-title";
-            break;
-        case (level === 2):
-            headlineProperties.elementName = "h2";
-            headlineProperties.className = "main-section-title";
-            break;
-        case (level === 3):
-            headlineProperties.elementName = "h3";
-            headlineProperties.className = "section-title";
-            break;
-        case (level > 3):
-            headlineProperties.elementName = "h4";
-            headlineProperties.className = "subsection-title";
-            break;
-        default:
-            headlineProperties.elementName = "h2";
-            headlineProperties.className = "main-section-title";
-    }
-    return headlineProperties;
+    return headingProperties;
 }
 
 /* ---------------------
@@ -401,24 +480,43 @@ function defineHeadlinePropertiesByHierarchyLevel(level) {
  * --------------------- */
 
 /**
- * Converts URL-like substrings in plain text into external anchor markup.
- * Trailing sentence punctuation remains outside the generated link.
+ * Converts URL-like substrings in plain text into external links.
+ * Trailing sentence punctuation remains outside generated links.
  *
- * @param {string} text
- * @returns {string}
+ * @param {string} text plain text containing possible URLs
+ * @returns {DocumentFragment} text and generated external links
  */
-export function urlify(text) {
-    if (typeof text !== "string" || text.length === 0) return text;
-    const detectedUrlRegex = /((?:https?:\/\/|www\.)[^\s<>"']+)/gi;
+export function linkifyUrls(text) {
+    const fragment = document.createDocumentFragment();
+    const detectedUrlPattern = /((?:https?:\/\/|www\.)[^\s<>"']+)/gi;
+    let textIndex = 0;
 
-    return text.replace(detectedUrlRegex, rawUrl => {
-        let url = rawUrl;
+    for (const match of text.matchAll(detectedUrlPattern)) {
+        // append text preceding the detected URL:
+        fragment.append(text.slice(textIndex, match.index));
+
+        // separate trailing punctuation from the URL:
+        let url = match[0];
         let trailing = "";
         while (/[.,;]$/.test(url)) {
             trailing = url.slice(-1) + trailing;
             url = url.slice(0, -1);
         }
-        const href = /^https?:\/\//i.test(url) ? url : "https://" + url;
-        return `<a class="ext-ref" target="_blank" rel="noopener noreferrer" href="${encodeURI(href)}">${url}</a>${trailing}`;
-    });
+
+        // create the external link without constructing HTML strings:
+        const link = document.createElement("a");
+        link.className = "ext-ref";
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.href = /^https?:\/\//i.test(url) ? url : "https://" + url;
+        link.textContent = url;
+
+        fragment.append(link, trailing);
+        textIndex = match.index + match[0].length;
+    }
+
+    // append text following the final detected URL:
+    fragment.append(text.slice(textIndex));
+
+    return fragment;
 }

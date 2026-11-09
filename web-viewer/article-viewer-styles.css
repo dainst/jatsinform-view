@@ -747,6 +747,19 @@ td > p {
 
 /* article cover section 
 ------------------------*/
+#title-department {
+    font-family: var(--primary-font-family);
+    color: white;
+    font-size: 1.5rem;
+    margin-top: 4vh;
+}
+
+#title-department:before {
+    font-family: var( --short-text-font);
+    content: "DAI ";
+    font-weight: 600;
+}
+
 #cover {
     height:100vh;
     font-family: var(--primary-font-family);
@@ -759,7 +772,7 @@ td > p {
 #cover-area {
     display: flex;
     flex-direction: column;
-    padding: 6% 8% 6% 8%;
+    padding: 4% 8% 4% 8%;
     background: var(--journal-color-high-contrast);
 }
 
@@ -1415,7 +1428,7 @@ mark {
     word-break: keep-all;
 }
 
-#orcid-icon {
+.orcid-icon {
     display: inline-block;
     width: 12px;
     height: 12px;
@@ -1432,7 +1445,7 @@ mark {
     word-break: keep-all;
 }
 
-#ror-icon {
+.ror-icon {
     display: inline-block;
     width: 12px;
     height: 12px;
