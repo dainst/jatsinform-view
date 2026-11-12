@@ -1694,7 +1694,7 @@ function getApiRefUrl(url) {
 
     let objectId;
     switch (true) {
-        case (/arachne.dainst.org/.test(url.hostname)):
+        case (/arachne.dainst.org\/entity/.test(url.hostname)):
             apiRefUrl.apiUrl = url.origin + "/data" + url.pathname;
             apiRefUrl.apiSource = "arachne";
             break;
@@ -2522,15 +2522,15 @@ function addLayoutSwitchToDocument() {
     layoutSwitchInput.type = "checkbox";
     layoutSwitchInput.id = "layout-switch-state";
     layoutSwitchInput.classList.add("screenreader-only");
+    layoutSwitchInput.ariaLabel = "Switch text and supplementary panel positions";
     document.querySelector("#text-content-wrapper").prepend(layoutSwitchInput);
 
     let layoutSwitchLabel = document.createElement("label");
     layoutSwitchLabel.id = "layout-switch";
     layoutSwitchLabel.setAttribute("for", "layout-switch-state");
-    layoutSwitchLabel.ariaLabel = "Switch text and supplementary panel positions";
+    layoutSwitchLabel.ariaHidden = true;
     layoutSwitchLabel.innerHTML =  "<i class='fa fa-exchange' aria-hidden='true'></i>";
     document.querySelector("#text-content-wrapper").prepend(layoutSwitchLabel);
- 
 }
 
 /* ---------------------
